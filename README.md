@@ -7,4 +7,4 @@ Compita contra a maquina em um jogo de cartas baseado no jogo Gwent.
  - Yen: invoca a carta Geralt na mesa
  - Nekker: Invoca 2 clones na mesa
  
- ![ScreenShot](docs/preview.png)
+ ![ScreenShot](docs/preview.gif)
