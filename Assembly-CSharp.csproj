@@ -52,11 +52,15 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
-     <Compile Include="Assets\Scripts\DragDrop.cs" />
-     <Compile Include="Assets\Scripts\DrawCards.cs" />
      <Compile Include="Assets\Scripts\CardFlipper.cs" />
-     <Compile Include="Assets\Scripts\CardZoom.cs" />
+     <Compile Include="Assets\Scripts\DragDrop.cs" />
+     <Compile Include="Assets\Scripts\CardInfo.cs" />
+     <Compile Include="Assets\Scripts\DrawCards.cs" />
+     <Compile Include="Assets\Scripts\Winner.cs" />
      <Compile Include="Assets\Scripts\GameManager.cs" />
+     <Compile Include="Assets\Scripts\ShowPoints.cs" />
+     <Compile Include="Assets\Scripts\Play.cs" />
+     <Compile Include="Assets\Scripts\CardZoom.cs" />
  <Reference Include="UnityEngine">
  <HintPath>C:/Program Files/Unity/Hub/Editor/2020.3.26f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
  </Reference>

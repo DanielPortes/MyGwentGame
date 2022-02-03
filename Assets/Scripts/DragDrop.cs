@@ -10,6 +10,7 @@ public class DragDrop : MonoBehaviour
     public GameObject Canvas;
     public GameObject DropZone;
     public GameObject EnemyZone;
+    public GameManager GameManager;
 
     private bool isDragging = false;
     private bool isDraggable = true;
@@ -20,10 +21,13 @@ public class DragDrop : MonoBehaviour
 
     void Start()
     {
+        GameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
         Canvas = GameObject.Find("Main Canvas");
-        DropZone = GameObject.Find("DropZone");
+        DropZone = GameObject.Find("DropZone2");
         EnemyZone = GameObject.Find("EnemyArea");
         
+        startParent = transform.parent.gameObject; // bug null, endDrag estava executando sem StartDrag ter inicializado a posicao inicial da carta
+        startPosition = transform.position;
     }
 
     private void OnCollisionEnter2D(Collision2D col)
@@ -40,10 +44,11 @@ public class DragDrop : MonoBehaviour
 
     public void StartDrag()
     {
-        if (!isDraggable || transform.IsChildOf(EnemyZone.transform))
+        if (!isDraggable || transform.IsChildOf(EnemyZone.transform) || PlayerPrefs.GetString("Turn") == "Enemy")
         {
             return;
         }
+
         isDragging = true;
         startParent = transform.parent.gameObject;
         startPosition = transform.position;
@@ -51,7 +56,7 @@ public class DragDrop : MonoBehaviour
 
     public void EndDrag()
     {
-        if (!isDraggable || transform.IsChildOf(EnemyZone.transform)) 
+        if (!isDraggable || transform.IsChildOf(EnemyZone.transform) || PlayerPrefs.GetString("Turn") == "Enemy")
         {
             return;
         }
@@ -60,11 +65,15 @@ public class DragDrop : MonoBehaviour
         if (isOverDropZone)
         {
             transform.SetParent(dropZone.transform, false);
-            if (startParent == EnemyZone)
-            {
-                GetComponent<CardFlipper>().Flip();
-            }
+
             isDraggable = false;
+
+            if (GetComponent<CardInfo>().hasEffect)
+            {
+                GameManager.CardsEffects(this.transform);
+            }
+
+            GameManager.passTurn();
         }
         else
         {
