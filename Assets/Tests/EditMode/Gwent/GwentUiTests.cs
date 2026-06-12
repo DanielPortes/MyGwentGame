@@ -79,6 +79,56 @@ namespace Gwent.Tests
         }
 
         [Test]
+        public void CardViewUsesRuntimeArtForFaceUpAndFaceDownCards()
+        {
+            var root = Root();
+            var geralt = new CardDefinition(
+                "neutral_geralt_of_rivia",
+                "Geralt of Rivia",
+                Faction.Neutral,
+                CardKind.Unit,
+                CombatRow.Close,
+                15,
+                CardAbility.Hero);
+            var fallbackCard = new CardDefinition(
+                "northern_realms_ballista",
+                "Ballista",
+                Faction.NorthernRealms,
+                CardKind.Unit,
+                CombatRow.Siege,
+                6);
+
+            var knownArt = GwentViewFactory.CreateCard(root.transform, geralt, true);
+            var fallbackArt = GwentViewFactory.CreateCard(root.transform, fallbackCard, true);
+            var faceDown = GwentViewFactory.CreateCard(root.transform, fallbackCard, false);
+
+            Assert.NotNull(knownArt.ArtImage.sprite, "Known local card art should render from runtime Resources.");
+            Assert.NotNull(fallbackArt.ArtImage.sprite, "Cards without exact art should still render a faction fallback.");
+            Assert.NotNull(faceDown.ArtImage.sprite, "Face-down cards should render a faction card back.");
+            Assert.Greater(faceDown.ArtImage.color.a, 0.9f);
+        }
+
+        [Test]
+        public void CardViewAllocatesReadableArtAreaForPlayableWebGl()
+        {
+            var root = Root();
+            var view = GwentViewFactory.CreateCard(
+                root.transform,
+                new CardDefinition("neutral_geralt_of_rivia", "Geralt of Rivia", Faction.Neutral, CardKind.Unit, CombatRow.Close, 15),
+                true);
+
+            var cardLayout = view.GetComponent<LayoutElement>();
+            var artLayout = view.ArtImage.GetComponent<LayoutElement>();
+            var verticalLayout = view.GetComponent<VerticalLayoutGroup>();
+
+            Assert.GreaterOrEqual(cardLayout.preferredHeight, 156f);
+            Assert.GreaterOrEqual(cardLayout.preferredWidth, 108f);
+            Assert.GreaterOrEqual(artLayout.preferredHeight, 68f);
+            Assert.IsTrue(verticalLayout.childControlHeight);
+            Assert.IsFalse(verticalLayout.childForceExpandHeight);
+        }
+
+        [Test]
         public void ViewFactoryAddsAnimationAndPolishSurfaces()
         {
             var root = Root();
@@ -92,6 +142,59 @@ namespace Gwent.Tests
             Assert.IsTrue(board.Rows.All(row => row.WeatherOverlay != null));
             Assert.NotNull(card.CanvasGroup);
             Assert.NotNull(card.RectTransform);
+        }
+
+        [Test]
+        public void BoardRowsUseMostOfThePlayableWebGlWidth()
+        {
+            var root = Root();
+            root.GetComponent<RectTransform>().sizeDelta = new Vector2(1280, 720);
+            var board = GwentViewFactory.CreateBoard(root.transform);
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(root.GetComponent<RectTransform>());
+            LayoutRebuilder.ForceRebuildLayoutImmediate(board.Root.GetComponent<RectTransform>());
+            Canvas.ForceUpdateCanvases();
+
+            var playerCloseRow = board.Rows.Single(row => row.Owner == PlayerId.Player && row.Row == CombatRow.Close);
+            var rowRect = playerCloseRow.GetComponent<RectTransform>().rect;
+            var rowLayout = playerCloseRow.GetComponent<LayoutElement>();
+            var middleLayout = board.Root.transform.Find("Board Middle").GetComponent<HorizontalLayoutGroup>();
+
+            Assert.IsTrue(middleLayout.childControlWidth);
+            Assert.IsFalse(middleLayout.childForceExpandWidth);
+            Assert.GreaterOrEqual(rowRect.width, 620f);
+            Assert.GreaterOrEqual(rowRect.height, 48f);
+            Assert.LessOrEqual(rowLayout.preferredHeight, 64f);
+        }
+
+        [Test]
+        public void BoardLayoutKeepsHandsAndRowsInsidePlayableWebGlHeight()
+        {
+            var root = Root();
+            root.GetComponent<RectTransform>().sizeDelta = new Vector2(1280, 720);
+            var board = GwentViewFactory.CreateBoard(root.transform);
+            var opponentHand = board.OpponentHand.GetComponent<LayoutElement>();
+            var middle = board.Root.transform.Find("Board Middle").GetComponent<LayoutElement>();
+            var middleRect = board.Root.transform.Find("Board Middle").GetComponent<RectTransform>();
+            var playerHand = board.PlayerHand.GetComponent<LayoutElement>();
+
+            var requiredHeight = 8f + opponentHand.preferredHeight + 6f + middle.preferredHeight + 6f + playerHand.preferredHeight + 8f;
+
+            Assert.LessOrEqual(requiredHeight, 720f);
+            Assert.AreEqual(new Vector2(0f, 1f), board.OpponentHand.GetComponent<RectTransform>().anchorMin);
+            Assert.AreEqual(Vector2.one, board.OpponentHand.GetComponent<RectTransform>().anchorMax);
+            Assert.AreEqual(Vector2.zero, middleRect.anchorMin);
+            Assert.AreEqual(Vector2.one, middleRect.anchorMax);
+            Assert.AreEqual(204f, middleRect.offsetMin.y, 0.01f);
+            Assert.AreEqual(-90f, middleRect.offsetMax.y, 0.01f);
+            Assert.AreEqual(Vector2.zero, board.PlayerHand.GetComponent<RectTransform>().anchorMin);
+            Assert.AreEqual(new Vector2(1f, 0f), board.PlayerHand.GetComponent<RectTransform>().anchorMax);
+            Assert.GreaterOrEqual(opponentHand.preferredHeight, 68f);
+            Assert.LessOrEqual(opponentHand.preferredHeight, 80f);
+            Assert.GreaterOrEqual(middle.preferredHeight, 390f);
+            Assert.LessOrEqual(middle.preferredHeight, 430f);
+            Assert.GreaterOrEqual(playerHand.preferredHeight, 180f);
+            Assert.LessOrEqual(playerHand.preferredHeight, 200f);
         }
 
         [Test]
@@ -111,6 +214,37 @@ namespace Gwent.Tests
             Assert.AreEqual(1f, view.CanvasGroup.alpha);
             Assert.AreEqual(Vector2.zero, view.RectTransform.anchoredPosition);
             Assert.Greater(view.transform.localScale.x, 1f);
+        }
+
+        [Test]
+        public void CardEntranceAnimationDoesNotOverrideLayoutGroupPosition()
+        {
+            var root = Root();
+            var row = new GameObject("Row", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            row.transform.SetParent(root.transform, false);
+            row.GetComponent<RectTransform>().sizeDelta = new Vector2(400, 180);
+            row.GetComponent<HorizontalLayoutGroup>().childControlWidth = false;
+            row.GetComponent<HorizontalLayoutGroup>().childControlHeight = false;
+            row.GetComponent<HorizontalLayoutGroup>().childForceExpandWidth = false;
+            row.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight = false;
+
+            GwentViewFactory.CreateCard(
+                row.transform,
+                new CardDefinition("first", "First", Faction.Neutral, CardKind.Unit, CombatRow.Close, 1),
+                true);
+            var second = GwentViewFactory.CreateCard(
+                row.transform,
+                new CardDefinition("second", "Second", Faction.Neutral, CardKind.Unit, CombatRow.Close, 2),
+                true);
+
+            Canvas.ForceUpdateCanvases();
+            var layoutPosition = second.RectTransform.anchoredPosition;
+
+            second.SetEntranceOffset(new Vector2(24, 0));
+            second.CompleteEntranceAnimation();
+
+            Assert.AreEqual(layoutPosition.x, second.RectTransform.anchoredPosition.x, 0.01f);
+            Assert.AreEqual(layoutPosition.y, second.RectTransform.anchoredPosition.y, 0.01f);
         }
 
         [Test]
@@ -160,6 +294,24 @@ namespace Gwent.Tests
 
             Assert.NotNull(Object.FindFirstObjectByType<EventSystem>());
             Assert.NotNull(root.GetComponentInChildren<Canvas>());
+        }
+
+        [Test]
+        public void GameControllerUsesPlayableWebGlReferenceResolution()
+        {
+            var root = new GameObject("Runtime Controller");
+            _root = root;
+            var controller = root.AddComponent<GwentGameController>();
+
+            controller.InitializeForTests(Faction.NorthernRealms, Faction.Nilfgaard);
+
+            var scaler = root.GetComponentInChildren<CanvasScaler>();
+            Assert.NotNull(scaler);
+            Assert.AreEqual(new Vector2(1280, 720), scaler.referenceResolution);
+            Assert.GreaterOrEqual(controller.Board.PlayerHand.GetComponent<LayoutElement>().preferredHeight, 168f);
+            Assert.GreaterOrEqual(controller.Board.OpponentHand.GetComponent<LayoutElement>().preferredHeight, 68f);
+            Assert.IsFalse(controller.Board.PlayerHand.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight);
+            Assert.IsFalse(controller.Board.OpponentHand.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight);
         }
 
         private GameObject Root()

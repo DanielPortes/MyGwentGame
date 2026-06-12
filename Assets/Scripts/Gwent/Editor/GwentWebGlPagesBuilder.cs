@@ -36,8 +36,8 @@ namespace Gwent.Editor
             EnsureWebGlEntryScene();
 
             PlayerSettings.runInBackground = true;
-            PlayerSettings.defaultWebScreenWidth = Mathf.Max(PlayerSettings.defaultWebScreenWidth, 960);
-            PlayerSettings.defaultWebScreenHeight = Mathf.Max(PlayerSettings.defaultWebScreenHeight, 600);
+            PlayerSettings.defaultWebScreenWidth = Mathf.Max(PlayerSettings.defaultWebScreenWidth, 1280);
+            PlayerSettings.defaultWebScreenHeight = Mathf.Max(PlayerSettings.defaultWebScreenHeight, 720);
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
             PlayerSettings.WebGL.dataCaching = true;
             PlayerSettings.WebGL.decompressionFallback = false;
@@ -78,6 +78,60 @@ namespace Gwent.Editor
             {
                 throw new FileNotFoundException("WebGL build did not produce index.html.", indexPath);
             }
+
+            ApplyFullscreenPagesTemplate(outputPath, indexPath);
+        }
+
+        private static void ApplyFullscreenPagesTemplate(string outputPath, string indexPath)
+        {
+            var stylePath = Path.Combine(outputPath, "TemplateData", "style.css");
+            if (!File.Exists(stylePath))
+            {
+                throw new FileNotFoundException("WebGL build did not produce TemplateData/style.css.", stylePath);
+            }
+
+            var css = File.ReadAllText(stylePath);
+            css += @"
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #090d0b;
+}
+
+#unity-container,
+#unity-container.unity-desktop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #090d0b;
+}
+
+#unity-canvas {
+  width: min(100vw, 177.7778vh) !important;
+  height: min(100vh, 56.25vw) !important;
+  max-width: 100vw;
+  max-height: 100vh;
+  display: block;
+}
+
+#unity-footer {
+  display: none !important;
+}
+";
+            File.WriteAllText(stylePath, css);
+
+            var index = File.ReadAllText(indexPath)
+                .Replace("<title>Unity Web Player | Gwent</title>", "<title>The Witcher 3 Gwent</title>");
+            File.WriteAllText(indexPath, index);
         }
 
         private static void EnsurePlayableScenes()

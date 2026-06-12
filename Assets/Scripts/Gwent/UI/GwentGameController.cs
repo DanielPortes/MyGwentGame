@@ -348,8 +348,8 @@ namespace Gwent.UI
                 rowView.SetWeatherActive(false);
                 foreach (var card in _match.GetRowCards(rowView.Owner, rowView.Row))
                 {
-                    var cardView = GwentViewFactory.CreateCard(rowView.CardsRoot, card, true);
-                    cardView.CompleteEntranceAnimation();
+                    var cardView = GwentViewFactory.CreateCard(rowView.CardsRoot, card, true, true);
+                    PresentCard(cardView, new Vector2(0f, 8f), 0.12f);
                 }
 
                 rowView.SetScore(_match.GetRowScore(rowView.Owner, rowView.Row));
@@ -365,12 +365,14 @@ namespace Gwent.UI
                 {
                     cardView.SetHighlighted(true);
                 }
+
+                PresentCard(cardView, new Vector2(0f, -16f), 0.12f);
             }
 
             foreach (var card in _match.GetHand(PlayerId.Opponent))
             {
-                var cardView = GwentViewFactory.CreateCard(Board.OpponentHand, card, false);
-                cardView.CompleteEntranceAnimation();
+                var cardView = GwentViewFactory.CreateCard(Board.OpponentHand, card, false, true);
+                PresentCard(cardView, new Vector2(0f, 8f), 0.12f);
             }
 
             Board.PlayerScoreText.text = "Você: " + _match.GetTotalScore(PlayerId.Player);
@@ -399,6 +401,18 @@ namespace Gwent.UI
         private void UpdateCardZoom(CardDefinition card)
         {
             Board.CardZoomText.text = card.Name + Environment.NewLine + "Força: " + card.Strength + Environment.NewLine + "Tipo: " + card.Kind;
+        }
+
+        private void PresentCard(GwentCardView cardView, Vector2 entranceOffset, float duration)
+        {
+            if (_initializedForTests || !Application.isPlaying)
+            {
+                cardView.CompleteEntranceAnimation();
+                return;
+            }
+
+            cardView.SetEntranceOffset(entranceOffset);
+            StartCoroutine(cardView.AnimateEntrance(duration));
         }
 
         private string StatusText()
@@ -436,7 +450,7 @@ namespace Gwent.UI
             if (scaler != null)
             {
                 scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                scaler.referenceResolution = new Vector2(1920, 1080);
+                scaler.referenceResolution = new Vector2(1280, 720);
                 scaler.matchWidthOrHeight = 0.5f;
             }
 

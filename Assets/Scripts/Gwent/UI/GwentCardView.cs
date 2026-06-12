@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using Gwent.Core;
 using Gwent.Data;
 using UnityEngine;
@@ -10,6 +9,8 @@ namespace Gwent.UI
 {
     public sealed class GwentCardView : MonoBehaviour
     {
+        private static readonly Dictionary<string, Sprite> SpriteCache = new Dictionary<string, Sprite>();
+
         public CardDefinition Card { get; private set; }
 
         public bool FaceUp { get; private set; }
@@ -60,9 +61,8 @@ namespace Gwent.UI
                 StrengthText.text = string.Empty;
                 RowText.text = string.Empty;
                 AbilityText.text = string.Empty;
-                ArtImage.sprite = null;
-                ArtImage.color = new Color(1f, 1f, 1f, 0f);
                 Background.color = new Color(0.10f, 0.13f, 0.18f, 1f);
+                ApplyBack(card);
                 return;
             }
 
@@ -79,12 +79,7 @@ namespace Gwent.UI
             ArtImage.sprite = null;
             ArtImage.color = new Color(1f, 1f, 1f, 0f);
 
-            if (!GwentAssetCatalog.TryGetCardArtPath(card.Id, out var relativePath))
-            {
-                return;
-            }
-
-            var sprite = LoadSprite(relativePath);
+            var sprite = LoadSprite(GwentAssetCatalog.GetCardArtResource(card));
             if (sprite == null)
             {
                 return;
@@ -95,54 +90,57 @@ namespace Gwent.UI
             ArtImage.color = Color.white;
         }
 
-        private static Sprite LoadSprite(string relativePath)
+        private void ApplyBack(CardDefinition card)
         {
-            var fullPath = ResolveAssetPath(relativePath);
-            if (fullPath == null)
+            ArtImage.sprite = null;
+            ArtImage.color = new Color(1f, 1f, 1f, 0f);
+
+            var faction = card == null ? Faction.Neutral : card.Faction;
+            var sprite = LoadSprite(GwentAssetCatalog.GetFactionBackResource(faction));
+            if (sprite == null)
             {
-                return null;
+                return;
             }
 
-            var bytes = File.ReadAllBytes(fullPath);
-            var texture = new Texture2D(2, 2);
-            if (!texture.LoadImage(bytes))
-            {
-                return null;
-            }
-
-            return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+            ArtImage.sprite = sprite;
+            ArtImage.preserveAspect = true;
+            ArtImage.color = Color.white;
         }
 
-        private static string ResolveAssetPath(string relativePath)
+        private static Sprite LoadSprite(string resourcePath)
         {
-            var projectRoot = Directory.GetParent(Application.dataPath)?.FullName;
-            var candidates = new[]
+            if (string.IsNullOrEmpty(resourcePath))
             {
-                Path.Combine(projectRoot ?? string.Empty, relativePath),
-                Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", relativePath)),
-                Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "..", relativePath))
-            };
-
-            foreach (var candidate in candidates)
-            {
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
+                return null;
             }
 
-            return null;
+            if (SpriteCache.TryGetValue(resourcePath, out var cached))
+            {
+                return cached;
+            }
+
+            var texture = Resources.Load<Texture2D>(resourcePath);
+            if (texture == null)
+            {
+                return null;
+            }
+
+            var sprite = Sprite.Create(
+                texture,
+                new Rect(0, 0, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f));
+            sprite.name = resourcePath;
+            SpriteCache[resourcePath] = sprite;
+            return sprite;
         }
 
         public void SetEntranceOffset(Vector2 offset)
         {
-            RectTransform.anchoredPosition = offset;
             CanvasGroup.alpha = 0f;
         }
 
         public void CompleteEntranceAnimation()
         {
-            RectTransform.anchoredPosition = Vector2.zero;
             CanvasGroup.alpha = 1f;
         }
 
@@ -154,11 +152,9 @@ namespace Gwent.UI
                 yield break;
             }
 
-            var start = RectTransform.anchoredPosition;
             for (var elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
             {
                 var progress = Mathf.Clamp01(elapsed / duration);
-                RectTransform.anchoredPosition = Vector2.Lerp(start, Vector2.zero, progress);
                 CanvasGroup.alpha = progress;
                 yield return null;
             }

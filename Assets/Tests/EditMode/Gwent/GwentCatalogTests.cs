@@ -1,7 +1,9 @@
 using System.Linq;
+using System.Reflection;
 using Gwent.Core;
 using Gwent.Data;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Gwent.Tests
 {
@@ -100,6 +102,40 @@ namespace Gwent.Tests
             Assert.AreEqual("Assets/Assets/1019.jpg", ciri);
             Assert.AreEqual("Assets/Assets/1683.jpg", yennefer);
             Assert.IsNull(missing);
+        }
+
+        [Test]
+        public void AssetCatalogProvidesLoadableRuntimeResourcesForEveryDefaultDeck()
+        {
+            var getCardArtResource = typeof(GwentAssetCatalog).GetMethod(
+                "GetCardArtResource",
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                new[] { typeof(CardDefinition) },
+                null);
+            var getFactionBackResource = typeof(GwentAssetCatalog).GetMethod(
+                "GetFactionBackResource",
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                new[] { typeof(Faction) },
+                null);
+
+            Assert.NotNull(getCardArtResource, "Runtime card art must be exposed as Resources paths for WebGL.");
+            Assert.NotNull(getFactionBackResource, "Runtime faction backs must be exposed as Resources paths for WebGL.");
+
+            foreach (var faction in new[] { Faction.NorthernRealms, Faction.Nilfgaard, Faction.Monsters, Faction.Scoiatael })
+            {
+                var backResource = (string)getFactionBackResource.Invoke(null, new object[] { faction });
+                Assert.IsNotEmpty(backResource, faction + " must have a runtime card-back fallback.");
+                Assert.NotNull(Resources.Load<Texture2D>(backResource), backResource);
+
+                foreach (var card in GwentCatalog.CreateDefaultDeck(faction))
+                {
+                    var artResource = (string)getCardArtResource.Invoke(null, new object[] { card });
+                    Assert.IsNotEmpty(artResource, card.Id + " must have runtime art or a faction fallback.");
+                    Assert.NotNull(Resources.Load<Texture2D>(artResource), card.Id + " -> " + artResource);
+                }
+            }
         }
 
         [Test]

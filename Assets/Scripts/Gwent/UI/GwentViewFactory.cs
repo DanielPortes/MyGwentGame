@@ -138,22 +138,21 @@ namespace Gwent.UI
             var root = CreatePanel("Gwent Board", parent, BackgroundColor);
             Stretch(root.GetComponent<RectTransform>());
 
-            var vertical = root.AddComponent<VerticalLayoutGroup>();
-            vertical.padding = new RectOffset(18, 18, 12, 12);
-            vertical.spacing = 8;
-            vertical.childControlWidth = true;
-            vertical.childControlHeight = false;
+            var opponentHand = CreateZone("Opponent Hand", root.transform, 76);
+            AnchorTop(opponentHand.GetComponent<RectTransform>(), 18, 18, 8, 76);
 
-            var opponentHand = CreateZone("Opponent Hand", root.transform, 78);
             var middle = CreatePanel("Board Middle", root.transform, new Color(0f, 0f, 0f, 0f));
-            middle.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+            StretchBetween(middle.GetComponent<RectTransform>(), 18, 18, 90, 204);
+            var middleElement = middle.gameObject.AddComponent<LayoutElement>();
+            middleElement.preferredHeight = 420;
             var middleLayout = middle.gameObject.AddComponent<HorizontalLayoutGroup>();
             middleLayout.spacing = 10;
-            middleLayout.childControlWidth = false;
+            middleLayout.childControlWidth = true;
             middleLayout.childControlHeight = true;
+            middleLayout.childForceExpandWidth = false;
 
             var statusPanel = CreatePanel("Status Panel", middle.transform, PanelColor);
-            statusPanel.gameObject.AddComponent<LayoutElement>().preferredWidth = 210;
+            statusPanel.gameObject.AddComponent<LayoutElement>().preferredWidth = 232;
             var statusLayout = statusPanel.gameObject.AddComponent<VerticalLayoutGroup>();
             statusLayout.padding = new RectOffset(10, 10, 10, 10);
             statusLayout.spacing = 8;
@@ -200,7 +199,8 @@ namespace Gwent.UI
                 CreateRow(rowsPanel.transform, PlayerId.Player, CombatRow.Siege)
             };
 
-            var playerHand = CreateZone("Player Hand", root.transform, 116);
+            var playerHand = CreateZone("Player Hand", root.transform, 190);
+            AnchorBottom(playerHand.GetComponent<RectTransform>(), 18, 18, 8, 190);
 
             return new GwentBoardView(
                 root,
@@ -226,51 +226,62 @@ namespace Gwent.UI
 
         public static GwentCardView CreateCard(Transform parent, CardDefinition card, bool faceUp)
         {
+            return CreateCard(parent, card, faceUp, false);
+        }
+
+        public static GwentCardView CreateCard(Transform parent, CardDefinition card, bool faceUp, bool compact)
+        {
             var root = CreatePanel(card.Id, parent, new Color(0.22f, 0.18f, 0.12f, 1f));
             root.AddComponent<CanvasGroup>();
             var rect = root.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(104, 144);
+            var cardWidth = compact ? 56 : 112;
+            var cardHeight = compact ? 56 : 168;
+            rect.sizeDelta = new Vector2(cardWidth, cardHeight);
             var element = root.AddComponent<LayoutElement>();
-            element.preferredWidth = 104;
-            element.preferredHeight = 144;
-            element.minWidth = 96;
-            element.minHeight = 132;
+            element.preferredWidth = cardWidth;
+            element.preferredHeight = cardHeight;
+            element.minWidth = compact ? 52 : 108;
+            element.minHeight = compact ? 52 : 156;
 
             var image = root.GetComponent<Image>();
             var button = root.AddComponent<Button>();
             button.targetGraphic = image;
 
             var layout = root.AddComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(8, 8, 8, 8);
-            layout.spacing = 3;
-            layout.childControlHeight = false;
+            layout.padding = compact ? new RectOffset(3, 3, 3, 3) : new RectOffset(6, 6, 6, 6);
+            layout.spacing = compact ? 1 : 2;
+            layout.childControlHeight = true;
             layout.childControlWidth = true;
+            layout.childForceExpandHeight = false;
 
-            var name = CreateText(string.Empty, root.transform, 13, TextAnchor.UpperCenter, Color.white);
+            var name = CreateText(string.Empty, root.transform, compact ? 9 : 13, TextAnchor.UpperCenter, Color.white);
             name.resizeTextForBestFit = true;
-            name.resizeTextMinSize = 8;
-            name.resizeTextMaxSize = 13;
-            name.gameObject.AddComponent<LayoutElement>().preferredHeight = 44;
+            name.resizeTextMinSize = compact ? 6 : 8;
+            name.resizeTextMaxSize = compact ? 9 : 13;
+            name.gameObject.AddComponent<LayoutElement>().preferredHeight = compact ? 0 : 24;
+            name.gameObject.SetActive(!compact);
 
-            var strength = CreateText(string.Empty, root.transform, 26, TextAnchor.MiddleCenter, AccentGold);
-            strength.gameObject.AddComponent<LayoutElement>().preferredHeight = 34;
+            var strength = CreateText(string.Empty, root.transform, compact ? 13 : 24, TextAnchor.MiddleCenter, AccentGold);
+            strength.gameObject.AddComponent<LayoutElement>().preferredHeight = compact ? 13 : 24;
 
             var artObject = CreatePanel("Art", root.transform, new Color(1f, 1f, 1f, 0f));
             var artImage = artObject.GetComponent<Image>();
             artImage.raycastTarget = false;
-            artObject.gameObject.AddComponent<LayoutElement>().preferredHeight = 36;
+            artObject.gameObject.AddComponent<LayoutElement>().preferredHeight = compact ? 36 : 70;
 
-            var row = CreateText(string.Empty, root.transform, 10, TextAnchor.MiddleCenter, Color.white);
+            var row = CreateText(string.Empty, root.transform, compact ? 7 : 10, TextAnchor.MiddleCenter, Color.white);
             row.resizeTextForBestFit = true;
             row.resizeTextMinSize = 7;
-            row.resizeTextMaxSize = 10;
-            row.gameObject.AddComponent<LayoutElement>().preferredHeight = 26;
+            row.resizeTextMaxSize = compact ? 7 : 10;
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = compact ? 0 : 16;
+            row.gameObject.SetActive(!compact);
 
-            var ability = CreateText(string.Empty, root.transform, 10, TextAnchor.MiddleCenter, new Color(0.86f, 0.88f, 0.78f, 1f));
+            var ability = CreateText(string.Empty, root.transform, compact ? 7 : 10, TextAnchor.MiddleCenter, new Color(0.86f, 0.88f, 0.78f, 1f));
             ability.resizeTextForBestFit = true;
             ability.resizeTextMinSize = 7;
-            ability.resizeTextMaxSize = 10;
-            ability.gameObject.AddComponent<LayoutElement>().preferredHeight = 26;
+            ability.resizeTextMaxSize = compact ? 7 : 10;
+            ability.gameObject.AddComponent<LayoutElement>().preferredHeight = compact ? 0 : 14;
+            ability.gameObject.SetActive(!compact);
 
             var view = root.AddComponent<GwentCardView>();
             view.Configure(name, strength, row, ability, button, image, artImage);
@@ -281,7 +292,10 @@ namespace Gwent.UI
         private static GwentRowView CreateRow(Transform parent, PlayerId owner, CombatRow row)
         {
             var rowObject = CreatePanel($"{owner} {row}", parent, owner == PlayerId.Player ? PlayerRowColor : OpponentRowColor);
-            rowObject.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
+            var rowElement = rowObject.gameObject.AddComponent<LayoutElement>();
+            rowElement.minHeight = 48;
+            rowElement.preferredHeight = 60;
+            rowElement.flexibleHeight = 1;
             var image = rowObject.GetComponent<Image>();
             var button = rowObject.AddComponent<Button>();
             button.targetGraphic = image;
@@ -304,6 +318,9 @@ namespace Gwent.UI
             cardLayout.spacing = 4;
             cardLayout.childControlHeight = true;
             cardLayout.childControlWidth = false;
+            cardLayout.childForceExpandWidth = false;
+            cardLayout.childForceExpandHeight = false;
+            cardLayout.childAlignment = TextAnchor.MiddleLeft;
 
             var overlay = CreatePanel("Weather Overlay", rowObject.transform, new Color(0.66f, 0.80f, 0.92f, 0f));
             var overlayImage = overlay.GetComponent<Image>();
@@ -325,6 +342,9 @@ namespace Gwent.UI
             layout.spacing = 5;
             layout.childControlWidth = false;
             layout.childControlHeight = true;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+            layout.childAlignment = TextAnchor.MiddleLeft;
             return zone.transform;
         }
 
@@ -368,6 +388,32 @@ namespace Gwent.UI
             rect.anchorMax = Vector2.one;
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
+        }
+
+        private static void StretchBetween(RectTransform rect, float left, float right, float top, float bottom)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = new Vector2(left, bottom);
+            rect.offsetMax = new Vector2(-right, -top);
+        }
+
+        private static void AnchorTop(RectTransform rect, float left, float right, float top, float height)
+        {
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -top);
+            rect.sizeDelta = new Vector2(-(left + right), height);
+        }
+
+        private static void AnchorBottom(RectTransform rect, float left, float right, float bottom, float height)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(0f, bottom);
+            rect.sizeDelta = new Vector2(-(left + right), height);
         }
 
         private static Font Font()
