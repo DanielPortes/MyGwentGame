@@ -88,6 +88,40 @@ namespace Gwent.Tests
             Assert.IsNull(scoiataelBack);
         }
 
+        [Test]
+        public void LeaderDefinitionsApplyCoreEffects()
+        {
+            var clearWeatherMatch = TestMatch();
+            clearWeatherMatch.PlayUnit(PlayerId.Player, Unit("infantry", CombatRow.Close, 8));
+            clearWeatherMatch.ApplyWeather(WeatherEffect.BitingFrost);
+
+            Leader(Faction.NorthernRealms, "northern_realms_foltest_lord_commander").ApplyTo(clearWeatherMatch, PlayerId.Player);
+
+            Assert.AreEqual(8, clearWeatherMatch.GetRowScore(PlayerId.Player, CombatRow.Close));
+
+            var hornMatch = TestMatch(Faction.Monsters, Faction.Nilfgaard);
+            hornMatch.PlayUnit(PlayerId.Player, Unit("nekker", CombatRow.Close, 2));
+
+            Leader(Faction.Monsters, "monsters_eredin_breacc_glas_the_treacherous").ApplyTo(hornMatch, PlayerId.Player);
+
+            Assert.AreEqual(4, hornMatch.GetRowScore(PlayerId.Player, CombatRow.Close));
+
+            var scorchMatch = TestMatch(Faction.Scoiatael, Faction.Nilfgaard);
+            scorchMatch.PlayUnit(PlayerId.Opponent, Unit("six", CombatRow.Close, 6));
+            scorchMatch.PlayUnit(PlayerId.Opponent, Unit("five", CombatRow.Close, 5));
+
+            Leader(Faction.Scoiatael, "scoiatael_francesca_queen_of_dol_blathanna").ApplyTo(scorchMatch, PlayerId.Player);
+
+            Assert.AreEqual(5, scorchMatch.GetRowScore(PlayerId.Opponent, CombatRow.Close));
+
+            var drawMatch = TestMatch(Faction.Scoiatael, Faction.Nilfgaard);
+            drawMatch.SetDeck(PlayerId.Player, Unit("draw", CombatRow.Ranged, 1));
+
+            Leader(Faction.Scoiatael, "scoiatael_francesca_daisy_of_the_valley").ApplyTo(drawMatch, PlayerId.Player);
+
+            Assert.AreEqual(new[] { "draw" }, drawMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
+        }
+
         private static void AssertCard(
             GwentDeckDefinition deck,
             string id,
@@ -107,6 +141,21 @@ namespace Gwent.Tests
         private static bool IsSpecialOrWeather(CardDefinition card)
         {
             return card.Kind == CardKind.Special || card.Kind == CardKind.Weather;
+        }
+
+        private static GwentMatch TestMatch(Faction playerFaction = Faction.NorthernRealms, Faction opponentFaction = Faction.Nilfgaard)
+        {
+            return new GwentMatch(playerFaction, opponentFaction, new DeterministicRandom());
+        }
+
+        private static CardDefinition Unit(string id, CombatRow row, int strength)
+        {
+            return new CardDefinition(id, id, Faction.Neutral, CardKind.Unit, row, strength);
+        }
+
+        private static GwentLeaderDefinition Leader(Faction faction, string id)
+        {
+            return GwentCatalog.GetDeck(faction).Leaders.Single(leader => leader.Id == id);
         }
 
         private static void AssertNeutralAbility(GwentCardCatalogEntry[] cards, string id, CardAbility ability)

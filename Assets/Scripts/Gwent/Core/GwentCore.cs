@@ -233,6 +233,13 @@ namespace Gwent.Core
             return State(player).Discard.AsReadOnly();
         }
 
+        public int DrawCards(PlayerId player, int amount)
+        {
+            var before = State(player).Hand.Count;
+            Draw(player, amount);
+            return State(player).Hand.Count - before;
+        }
+
         public IEnumerable<CardDefinition> GetBoardCards(PlayerId player)
         {
             return State(player).Rows.Values.SelectMany(row => row);

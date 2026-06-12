@@ -19,6 +19,7 @@ namespace Gwent.UI
         private int _selectedHandIndex = -1;
         private bool _initializedForTests;
         private bool _mulligansLocked;
+        private bool _playerLeaderUsed;
 
         public Faction PlayerFaction { get; private set; }
 
@@ -102,6 +103,7 @@ namespace Gwent.UI
             OpponentFaction = opponentFaction;
             _selectedHandIndex = -1;
             _mulligansLocked = false;
+            _playerLeaderUsed = false;
             _selectionView = null;
 
             _match = new GwentMatch(playerFaction, opponentFaction, new DeterministicRandom());
@@ -139,14 +141,23 @@ namespace Gwent.UI
 
         private void OnLeaderClicked()
         {
+            if (_playerLeaderUsed || !CanPlayerAct())
+            {
+                Board.StatusText.text = "Líder indisponível";
+                return;
+            }
+
             var leader = GwentCatalog.GetDeck(PlayerFaction).Leaders.FirstOrDefault();
             if (leader == null)
             {
                 return;
             }
 
+            leader.ApplyTo(_match, PlayerId.Player);
+            _playerLeaderUsed = true;
+            Render();
             Board.CardZoomText.text = leader.Name + Environment.NewLine + leader.AbilityText;
-            Board.StatusText.text = "Líder selecionado";
+            Board.StatusText.text = "Líder usado";
         }
 
         private void OnMulliganClicked()

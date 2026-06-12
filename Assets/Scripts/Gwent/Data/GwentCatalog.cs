@@ -6,9 +6,26 @@ using Gwent.Core;
 
 namespace Gwent.Data
 {
+    public enum GwentLeaderAbility
+    {
+        None,
+        ClearWeather,
+        ApplyHorn,
+        ApplyWeather,
+        ScorchRow,
+        DrawCard
+    }
+
     public sealed class GwentLeaderDefinition
     {
-        public GwentLeaderDefinition(string id, string name, Faction faction, string abilityText)
+        public GwentLeaderDefinition(
+            string id,
+            string name,
+            Faction faction,
+            string abilityText,
+            GwentLeaderAbility ability,
+            CombatRow? targetRow,
+            WeatherEffect? weatherEffect)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -24,6 +41,9 @@ namespace Gwent.Data
             Name = name;
             Faction = faction;
             AbilityText = abilityText ?? string.Empty;
+            Ability = ability;
+            TargetRow = targetRow;
+            WeatherEffect = weatherEffect;
         }
 
         public string Id { get; }
@@ -33,6 +53,68 @@ namespace Gwent.Data
         public Faction Faction { get; }
 
         public string AbilityText { get; }
+
+        public GwentLeaderAbility Ability { get; }
+
+        public CombatRow? TargetRow { get; }
+
+        public WeatherEffect? WeatherEffect { get; }
+
+        public void ApplyTo(GwentMatch match, PlayerId owner)
+        {
+            if (match == null)
+            {
+                throw new ArgumentNullException(nameof(match));
+            }
+
+            switch (Ability)
+            {
+                case GwentLeaderAbility.ClearWeather:
+                    match.ApplyWeather(Gwent.Core.WeatherEffect.ClearWeather);
+                    return;
+                case GwentLeaderAbility.ApplyHorn:
+                    match.ApplyHorn(owner, RequireTargetRow());
+                    return;
+                case GwentLeaderAbility.ApplyWeather:
+                    match.ApplyWeather(RequireWeatherEffect());
+                    return;
+                case GwentLeaderAbility.ScorchRow:
+                    match.PlayRowScorch(OpponentOf(owner), RequireTargetRow());
+                    return;
+                case GwentLeaderAbility.DrawCard:
+                    match.DrawCards(owner, 1);
+                    return;
+                case GwentLeaderAbility.None:
+                    return;
+                default:
+                    throw new InvalidOperationException("Unsupported leader ability.");
+            }
+        }
+
+        private CombatRow RequireTargetRow()
+        {
+            if (!TargetRow.HasValue)
+            {
+                throw new InvalidOperationException("Leader ability requires a target row.");
+            }
+
+            return TargetRow.Value;
+        }
+
+        private WeatherEffect RequireWeatherEffect()
+        {
+            if (!WeatherEffect.HasValue)
+            {
+                throw new InvalidOperationException("Leader ability requires a weather effect.");
+            }
+
+            return WeatherEffect.Value;
+        }
+
+        private static PlayerId OpponentOf(PlayerId player)
+        {
+            return player == PlayerId.Player ? PlayerId.Opponent : PlayerId.Player;
+        }
     }
 
     public sealed class GwentCardCatalogEntry
@@ -89,10 +171,10 @@ namespace Gwent.Data
             Faction.NorthernRealms,
             new[]
             {
-                Leader("northern_realms_foltest_king_of_temeria", "Foltest: King of Temeria", Faction.NorthernRealms, "Pick an Impenetrable Fog card from your deck and play it instantly."),
-                Leader("northern_realms_foltest_lord_commander", "Foltest: Lord Commander of the North", Faction.NorthernRealms, "Clear any weather effects in play."),
-                Leader("northern_realms_foltest_son_of_medell", "Foltest: The Siegemaster", Faction.NorthernRealms, "Double the strength of all Siege units unless a Commander's Horn is already present."),
-                Leader("northern_realms_foltest_the_steel_forged", "Foltest: The Steel-Forged", Faction.NorthernRealms, "Destroy your enemy's strongest Siege units if their combined strength is 10 or more.")
+                Leader("northern_realms_foltest_king_of_temeria", "Foltest: King of Temeria", Faction.NorthernRealms, "Pick an Impenetrable Fog card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.ImpenetrableFog),
+                Leader("northern_realms_foltest_lord_commander", "Foltest: Lord Commander of the North", Faction.NorthernRealms, "Clear any weather effects in play.", GwentLeaderAbility.ClearWeather),
+                Leader("northern_realms_foltest_son_of_medell", "Foltest: The Siegemaster", Faction.NorthernRealms, "Double the strength of all Siege units unless a Commander's Horn is already present.", GwentLeaderAbility.ApplyHorn, CombatRow.Siege),
+                Leader("northern_realms_foltest_the_steel_forged", "Foltest: The Steel-Forged", Faction.NorthernRealms, "Destroy your enemy's strongest Siege units if their combined strength is 10 or more.", GwentLeaderAbility.ScorchRow, CombatRow.Siege)
             },
             new[]
             {
@@ -127,7 +209,7 @@ namespace Gwent.Data
             Faction.Nilfgaard,
             new[]
             {
-                Leader("nilfgaard_emhyr_emperor_of_nilfgaard", "Emhyr: Emperor of Nilfgaard", Faction.Nilfgaard, "Pick a Torrential Rain card from your deck and play it instantly."),
+                Leader("nilfgaard_emhyr_emperor_of_nilfgaard", "Emhyr: Emperor of Nilfgaard", Faction.Nilfgaard, "Pick a Torrential Rain card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.TorrentialRain),
                 Leader("nilfgaard_emhyr_his_imperial_majesty", "Emhyr: His Imperial Majesty", Faction.Nilfgaard, "Look at three random cards in your opponent's hand."),
                 Leader("nilfgaard_emhyr_invader_of_the_north", "Emhyr: Invader of the North", Faction.Nilfgaard, "Abilities that restore cards from the discard pile are disabled."),
                 Leader("nilfgaard_emhyr_the_relentless", "Emhyr: The Relentless", Faction.Nilfgaard, "Draw a card from your opponent's discard pile."),
@@ -170,9 +252,9 @@ namespace Gwent.Data
             Faction.Monsters,
             new[]
             {
-                Leader("monsters_eredin_breacc_glas_the_treacherous", "Eredin Breacc Glas: The Treacherous", Faction.Monsters, "Double the strength of all Close Combat units unless a Commander's Horn is already present."),
-                Leader("monsters_eredin_bringer_of_death", "Eredin: Bringer of Death", Faction.Monsters, "Discard two cards and draw one card of your choice from your deck."),
-                Leader("monsters_eredin_commander_of_the_red_riders", "Eredin: Commander of the Red Riders", Faction.Monsters, "Pick any weather card from your deck and play it instantly."),
+                Leader("monsters_eredin_breacc_glas_the_treacherous", "Eredin Breacc Glas: The Treacherous", Faction.Monsters, "Double the strength of all Close Combat units unless a Commander's Horn is already present.", GwentLeaderAbility.ApplyHorn, CombatRow.Close),
+                Leader("monsters_eredin_bringer_of_death", "Eredin: Bringer of Death", Faction.Monsters, "Discard two cards and draw one card of your choice from your deck.", GwentLeaderAbility.DrawCard),
+                Leader("monsters_eredin_commander_of_the_red_riders", "Eredin: Commander of the Red Riders", Faction.Monsters, "Pick any weather card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.BitingFrost),
                 Leader("monsters_eredin_destroyer_of_worlds", "Eredin: Destroyer of Worlds", Faction.Monsters, "Restore one card from your discard pile to your hand."),
                 Leader("monsters_eredin_king_of_the_wild_hunt", "Eredin: King of the Wild Hunt", Faction.Monsters, "Cancel your opponent's leader ability.")
             },
@@ -219,11 +301,11 @@ namespace Gwent.Data
             Faction.Scoiatael,
             new[]
             {
-                Leader("scoiatael_francesca_daisy_of_the_valley", "Francesca Findabair: Daisy of the Valley", Faction.Scoiatael, "Draw an extra card at the beginning of the battle."),
+                Leader("scoiatael_francesca_daisy_of_the_valley", "Francesca Findabair: Daisy of the Valley", Faction.Scoiatael, "Draw an extra card at the beginning of the battle.", GwentLeaderAbility.DrawCard),
                 Leader("scoiatael_francesca_hope_of_the_aen_seidhe", "Francesca Findabair: Hope of the Aen Seidhe", Faction.Scoiatael, "Move agile units to the row where they maximize their strength."),
-                Leader("scoiatael_francesca_pureblood_elf", "Francesca Findabair: Pureblood Elf", Faction.Scoiatael, "Pick a Biting Frost card from your deck and play it instantly."),
-                Leader("scoiatael_francesca_queen_of_dol_blathanna", "Francesca Findabair: Queen of Dol Blathanna", Faction.Scoiatael, "Destroy your enemy's strongest Close Combat units if their combined strength is 10 or more."),
-                Leader("scoiatael_francesca_the_beautiful", "Francesca Findabair: The Beautiful", Faction.Scoiatael, "Double the strength of all Ranged units unless a Commander's Horn is already present.")
+                Leader("scoiatael_francesca_pureblood_elf", "Francesca Findabair: Pureblood Elf", Faction.Scoiatael, "Pick a Biting Frost card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.BitingFrost),
+                Leader("scoiatael_francesca_queen_of_dol_blathanna", "Francesca Findabair: Queen of Dol Blathanna", Faction.Scoiatael, "Destroy your enemy's strongest Close Combat units if their combined strength is 10 or more.", GwentLeaderAbility.ScorchRow, CombatRow.Close),
+                Leader("scoiatael_francesca_the_beautiful", "Francesca Findabair: The Beautiful", Faction.Scoiatael, "Double the strength of all Ranged units unless a Commander's Horn is already present.", GwentLeaderAbility.ApplyHorn, CombatRow.Ranged)
             },
             new[]
             {
@@ -339,9 +421,16 @@ namespace Gwent.Data
             return NeutralCards.Single(card => card.Card.Id == id);
         }
 
-        private static GwentLeaderDefinition Leader(string id, string name, Faction faction, string abilityText)
+        private static GwentLeaderDefinition Leader(
+            string id,
+            string name,
+            Faction faction,
+            string abilityText,
+            GwentLeaderAbility ability = GwentLeaderAbility.None,
+            CombatRow? targetRow = null,
+            WeatherEffect? weatherEffect = null)
         {
-            return new GwentLeaderDefinition(id, name, faction, abilityText);
+            return new GwentLeaderDefinition(id, name, faction, abilityText, ability, targetRow, weatherEffect);
         }
 
         private static GwentCardCatalogEntry Unit(

@@ -95,4 +95,5 @@
 - [x] Update catalog flags for Villentretenmerth, Toad, and Schirru.
 - [x] Run EditMode tests and Windows batchmode build.
 - [x] Commit with message `feat: close witcher 3 gwent rule gaps`.
-- [ ] Implement functional leader abilities from the Witcher 3 decks.
+- [x] Implement functional leader abilities from the Witcher 3 decks.
+- [x] Commit with message `feat: add gwent leader abilities`.
