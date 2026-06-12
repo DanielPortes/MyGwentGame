@@ -66,8 +66,11 @@ namespace Gwent.Tests
             AssertCard(nilfgaard, "nilfgaard_menno_coehoorn", CombatRow.Close, 10, CardAbility.Hero | CardAbility.Medic, 1);
             AssertCard(monsters, "monsters_arachas", CombatRow.Close, 4, CardAbility.Muster, 3);
             AssertCard(monsters, "monsters_kayran", CombatRow.Close, 8, CardAbility.Hero | CardAbility.MoraleBoost | CardAbility.Agile, 1);
+            AssertCard(monsters, "monsters_toad", CombatRow.Ranged, 7, CardAbility.ScorchRanged, 1);
             AssertCard(scoiatael, "scoiatael_havekar_healer", CombatRow.Ranged, 0, CardAbility.Medic, 3);
+            AssertCard(scoiatael, "scoiatael_schirru", CombatRow.Siege, 8, CardAbility.ScorchSiege, 1);
             AssertCard(scoiatael, "scoiatael_vrihedd_brigade_veteran", CombatRow.Close, 5, CardAbility.Agile, 2);
+            AssertNeutralAbility(GwentCatalog.GetNeutralCards().ToArray(), "neutral_villentretenmerth", CardAbility.ScorchClose);
         }
 
         [Test]

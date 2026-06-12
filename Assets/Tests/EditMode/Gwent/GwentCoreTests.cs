@@ -25,13 +25,33 @@ namespace Gwent.Tests
         {
             var match = TestMatch();
             match.PlayUnit(PlayerId.Player, Card("geralt", "Geralt of Rivia", CombatRow.Close, 15, CardAbility.Hero));
-            match.PlayUnit(PlayerId.Opponent, Card("reaver", "Reaver", CombatRow.Close, 10));
+            match.PlayUnit(PlayerId.Opponent, Card("reaver", "Reaver", CombatRow.Ranged, 10));
 
             match.ApplyWeather(WeatherEffect.BitingFrost);
             match.PlayScorch(PlayerId.Player);
 
             Assert.AreEqual(15, match.GetTotalScore(PlayerId.Player));
             Assert.AreEqual(0, match.GetTotalScore(PlayerId.Opponent));
+        }
+
+        [Test]
+        public void ScorchOnlyDestroysStrongestUnitsAtTenOrMore()
+        {
+            var safeMatch = TestMatch();
+            safeMatch.PlayUnit(PlayerId.Player, Card("eight", "Eight", CombatRow.Close, 8));
+
+            safeMatch.PlayScorch(PlayerId.Player);
+
+            Assert.AreEqual(8, safeMatch.GetTotalScore(PlayerId.Player));
+
+            var burnMatch = TestMatch();
+            burnMatch.PlayUnit(PlayerId.Player, Card("ten", "Ten", CombatRow.Close, 10));
+            burnMatch.PlayUnit(PlayerId.Opponent, Card("other_ten", "Other Ten", CombatRow.Ranged, 10));
+
+            burnMatch.PlayScorch(PlayerId.Player);
+
+            Assert.AreEqual(0, burnMatch.GetTotalScore(PlayerId.Player));
+            Assert.AreEqual(0, burnMatch.GetTotalScore(PlayerId.Opponent));
         }
 
         [Test]
@@ -70,6 +90,23 @@ namespace Gwent.Tests
 
             Assert.AreEqual(12, match.GetRowScore(PlayerId.Player, CombatRow.Close));
             Assert.AreEqual(1, match.GetDeck(PlayerId.Player).Count);
+        }
+
+        [Test]
+        public void MusterUsesSharedGroupsForDifferentlyNamedCards()
+        {
+            var match = TestMatch();
+            var brewess = MusterCard("crone_brewess", "Crone: Brewess", "crones", 6);
+            var weavess = MusterCard("crone_weavess", "Crone: Weavess", "crones", 6);
+            var whispess = MusterCard("crone_whispess", "Crone: Whispess", "crones", 6);
+            match.SetHand(PlayerId.Player, brewess, weavess);
+            match.SetDeck(PlayerId.Player, whispess);
+
+            match.PlayCardFromHand(PlayerId.Player, 0, CombatRow.Close);
+
+            Assert.AreEqual(18, match.GetRowScore(PlayerId.Player, CombatRow.Close));
+            Assert.IsEmpty(match.GetHand(PlayerId.Player));
+            Assert.IsEmpty(match.GetDeck(PlayerId.Player));
         }
 
         [Test]
@@ -308,6 +345,22 @@ namespace Gwent.Tests
         }
 
         [Test]
+        public void UnitRowScorchBurnsStrongestEnemyCardInTargetRow()
+        {
+            var match = TestMatch();
+            var dragon = Card("villentretenmerth", "Villentretenmerth", CombatRow.Close, 7, CardAbility.ScorchClose);
+            match.SetHand(PlayerId.Player, dragon);
+            match.PlayUnit(PlayerId.Opponent, Card("six", "Six", CombatRow.Close, 6));
+            match.PlayUnit(PlayerId.Opponent, Card("five", "Five", CombatRow.Close, 5));
+
+            match.PlayCardFromHand(PlayerId.Player, 0, CombatRow.Close);
+
+            Assert.AreEqual(7, match.GetRowScore(PlayerId.Player, CombatRow.Close));
+            Assert.AreEqual(5, match.GetRowScore(PlayerId.Opponent, CombatRow.Close));
+            Assert.AreEqual(new[] { "six" }, match.GetDiscard(PlayerId.Opponent).Select(card => card.Id).ToArray());
+        }
+
+        [Test]
         public void NonNilfgaardDrawMakesBothPlayersLoseTheRound()
         {
             var match = TestMatch(Faction.NorthernRealms, Faction.Monsters);
@@ -359,6 +412,11 @@ namespace Gwent.Tests
         private static CardDefinition Card(string id, string name, CombatRow row, int strength, params CardAbility[] abilities)
         {
             return new CardDefinition(id, name, Faction.Neutral, CardKind.Unit, row, strength, abilities);
+        }
+
+        private static CardDefinition MusterCard(string id, string name, string musterGroup, int strength)
+        {
+            return new CardDefinition(id, name, Faction.Neutral, CardKind.Unit, CombatRow.Close, strength, musterGroup, CardAbility.Muster);
         }
 
         private static CardDefinition Special(string id, string name, params CardAbility[] abilities)

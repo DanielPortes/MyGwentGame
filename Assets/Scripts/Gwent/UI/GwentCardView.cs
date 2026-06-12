@@ -176,6 +176,9 @@ namespace Gwent.UI
             Add(abilities, CardAbility.Decoy, "Decoy");
             Add(abilities, CardAbility.Scorch, "Scorch");
             Add(abilities, CardAbility.CommandersHorn, "Horn");
+            Add(abilities, CardAbility.ScorchClose, "Scorch Close");
+            Add(abilities, CardAbility.ScorchRanged, "Scorch Ranged");
+            Add(abilities, CardAbility.ScorchSiege, "Scorch Siege");
             return string.Join(" | ", labels);
 
             void Add(CardAbility source, CardAbility flag, string label)

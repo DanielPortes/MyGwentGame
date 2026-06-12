@@ -80,3 +80,19 @@
 - [x] Verify the UI remains readable at desktop resolution.
 - [x] Run EditMode tests and Windows batchmode build.
 - [x] Commit with message `feat: add gwent board animations`.
+
+### Task 6: Rule Parity Follow-up
+
+**Files:**
+- Modify: `Assets/Scripts/Gwent/Core/GwentCore.cs`
+- Modify: `Assets/Scripts/Gwent/Data/GwentCatalog.cs`
+- Modify: `Assets/Scripts/Gwent/UI/GwentCardView.cs`
+- Modify: `Assets/Tests/EditMode/Gwent/GwentCoreTests.cs`
+- Modify: `Assets/Tests/EditMode/Gwent/GwentCatalogTests.cs`
+
+- [x] Add failing tests for shared Muster groups, Scorch threshold, and row-specific Scorch cards.
+- [x] Implement Witcher 3-style shared Muster groups and Scorch behavior.
+- [x] Update catalog flags for Villentretenmerth, Toad, and Schirru.
+- [x] Run EditMode tests and Windows batchmode build.
+- [x] Commit with message `feat: close witcher 3 gwent rule gaps`.
+- [ ] Implement functional leader abilities from the Witcher 3 decks.

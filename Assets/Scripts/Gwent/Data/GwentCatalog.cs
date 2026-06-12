@@ -178,14 +178,14 @@ namespace Gwent.Data
             },
             new[]
             {
-                Unit("monsters_arachas", "Arachas", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster, 3),
-                Unit("monsters_arachas_behemoth", "Arachas Behemoth", Faction.Monsters, CombatRow.Siege, 6, CardAbility.Muster),
+                Unit("monsters_arachas", "Arachas", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster, 3, "monsters_arachas"),
+                Unit("monsters_arachas_behemoth", "Arachas Behemoth", Faction.Monsters, CombatRow.Siege, 6, CardAbility.Muster, musterGroup: "monsters_arachas"),
                 Unit("monsters_botchling", "Botchling", Faction.Monsters, CombatRow.Close, 4),
                 Unit("monsters_celaeno_harpy", "Celaeno Harpy", Faction.Monsters, CombatRow.Close, 2, CardAbility.Agile),
                 Unit("monsters_cockatrice", "Cockatrice", Faction.Monsters, CombatRow.Ranged, 2),
-                Unit("monsters_crone_brewess", "Crone: Brewess", Faction.Monsters, CombatRow.Close, 6, CardAbility.Muster),
-                Unit("monsters_crone_weavess", "Crone: Weavess", Faction.Monsters, CombatRow.Close, 6, CardAbility.Muster),
-                Unit("monsters_crone_whispess", "Crone: Whispess", Faction.Monsters, CombatRow.Close, 6, CardAbility.Muster),
+                Unit("monsters_crone_brewess", "Crone: Brewess", Faction.Monsters, CombatRow.Close, 6, CardAbility.Muster, musterGroup: "monsters_crones"),
+                Unit("monsters_crone_weavess", "Crone: Weavess", Faction.Monsters, CombatRow.Close, 6, CardAbility.Muster, musterGroup: "monsters_crones"),
+                Unit("monsters_crone_whispess", "Crone: Whispess", Faction.Monsters, CombatRow.Close, 6, CardAbility.Muster, musterGroup: "monsters_crones"),
                 Unit("monsters_draug", "Draug", Faction.Monsters, CombatRow.Close, 10, CardAbility.Hero),
                 Unit("monsters_earth_elemental", "Earth Elemental", Faction.Monsters, CombatRow.Siege, 6),
                 Unit("monsters_endrega", "Endrega", Faction.Monsters, CombatRow.Ranged, 2),
@@ -205,12 +205,12 @@ namespace Gwent.Data
                 Unit("monsters_leshen", "Leshen", Faction.Monsters, CombatRow.Ranged, 10, CardAbility.Hero),
                 Unit("monsters_nekker", "Nekker", Faction.Monsters, CombatRow.Close, 2, CardAbility.Muster, 3),
                 Unit("monsters_plague_maiden", "Plague Maiden", Faction.Monsters, CombatRow.Close, 5),
-                Unit("monsters_toad", "Toad", Faction.Monsters, CombatRow.Ranged, 7),
-                Unit("monsters_vampire_bruxa", "Vampire: Bruxa", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster),
-                Unit("monsters_vampire_ekimmara", "Vampire: Ekimmara", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster),
-                Unit("monsters_vampire_fleder", "Vampire: Fleder", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster),
-                Unit("monsters_vampire_garkain", "Vampire: Garkain", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster),
-                Unit("monsters_vampire_katakan", "Vampire: Katakan", Faction.Monsters, CombatRow.Close, 5, CardAbility.Muster),
+                Unit("monsters_toad", "Toad", Faction.Monsters, CombatRow.Ranged, 7, CardAbility.ScorchRanged),
+                Unit("monsters_vampire_bruxa", "Vampire: Bruxa", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster, musterGroup: "monsters_vampires"),
+                Unit("monsters_vampire_ekimmara", "Vampire: Ekimmara", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster, musterGroup: "monsters_vampires"),
+                Unit("monsters_vampire_fleder", "Vampire: Fleder", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster, musterGroup: "monsters_vampires"),
+                Unit("monsters_vampire_garkain", "Vampire: Garkain", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster, musterGroup: "monsters_vampires"),
+                Unit("monsters_vampire_katakan", "Vampire: Katakan", Faction.Monsters, CombatRow.Close, 5, CardAbility.Muster, musterGroup: "monsters_vampires"),
                 Unit("monsters_werewolf", "Werewolf", Faction.Monsters, CombatRow.Close, 5),
                 Unit("monsters_wyvern", "Wyvern", Faction.Monsters, CombatRow.Ranged, 2)
             });
@@ -245,7 +245,7 @@ namespace Gwent.Data
                 Unit("scoiatael_milva", "Milva", Faction.Scoiatael, CombatRow.Ranged, 10, CardAbility.MoraleBoost),
                 Unit("scoiatael_riordain", "Riordain", Faction.Scoiatael, CombatRow.Ranged, 1),
                 Unit("scoiatael_saesenthessis", "Saesenthessis", Faction.Scoiatael, CombatRow.Ranged, 10, CardAbility.Hero),
-                Unit("scoiatael_schirru", "Schirru", Faction.Scoiatael, CombatRow.Siege, 8),
+                Unit("scoiatael_schirru", "Schirru", Faction.Scoiatael, CombatRow.Siege, 8, CardAbility.ScorchSiege),
                 Unit("scoiatael_toruviel", "Toruviel", Faction.Scoiatael, CombatRow.Ranged, 2),
                 Unit("scoiatael_vrihedd_brigade_recruit", "Vrihedd Brigade Recruit", Faction.Scoiatael, CombatRow.Ranged, 4),
                 Unit("scoiatael_vrihedd_brigade_veteran", "Vrihedd Brigade Veteran", Faction.Scoiatael, CombatRow.Close, 5, CardAbility.Agile, 2),
@@ -268,7 +268,7 @@ namespace Gwent.Data
             Weather("neutral_torrential_rain", "Torrential Rain"),
             Unit("neutral_triss_merigold", "Triss Merigold", Faction.Neutral, CombatRow.Close, 7, CardAbility.Hero),
             Unit("neutral_vesemir", "Vesemir", Faction.Neutral, CombatRow.Close, 6),
-            Unit("neutral_villentretenmerth", "Villentretenmerth", Faction.Neutral, CombatRow.Close, 7),
+            Unit("neutral_villentretenmerth", "Villentretenmerth", Faction.Neutral, CombatRow.Close, 7, CardAbility.ScorchClose),
             Unit("neutral_yennefer_of_vengerberg", "Yennefer of Vengerberg", Faction.Neutral, CombatRow.Ranged, 7, CardAbility.Medic | CardAbility.Hero),
             Unit("neutral_zoltan_chivay", "Zoltan Chivay", Faction.Neutral, CombatRow.Close, 5)
         });
@@ -351,10 +351,11 @@ namespace Gwent.Data
             CombatRow row,
             int strength,
             CardAbility ability = CardAbility.None,
-            int copies = 1)
+            int copies = 1,
+            string musterGroup = null)
         {
             return new GwentCardCatalogEntry(
-                new CardDefinition(id, name, faction, CardKind.Unit, row, strength, ability),
+                new CardDefinition(id, name, faction, CardKind.Unit, row, strength, musterGroup, ability),
                 copies,
                 true,
                 SourcePageFor(faction));

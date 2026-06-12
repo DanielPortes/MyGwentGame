@@ -47,7 +47,10 @@ namespace Gwent.Core
         Agile = 1 << 6,
         Decoy = 1 << 7,
         Scorch = 1 << 8,
-        CommandersHorn = 1 << 9
+        CommandersHorn = 1 << 9,
+        ScorchClose = 1 << 10,
+        ScorchRanged = 1 << 11,
+        ScorchSiege = 1 << 12
     }
 
     public enum WeatherEffect
@@ -68,6 +71,19 @@ namespace Gwent.Core
             CombatRow row,
             int strength,
             params CardAbility[] abilities)
+            : this(id, name, faction, kind, row, strength, null, abilities)
+        {
+        }
+
+        public CardDefinition(
+            string id,
+            string name,
+            Faction faction,
+            CardKind kind,
+            CombatRow row,
+            int strength,
+            string musterGroup,
+            params CardAbility[] abilities)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -85,6 +101,7 @@ namespace Gwent.Core
             Kind = kind;
             Row = row;
             Strength = strength;
+            MusterGroup = string.IsNullOrWhiteSpace(musterGroup) ? id : musterGroup;
             Abilities = MergeAbilities(abilities);
         }
 
@@ -99,6 +116,8 @@ namespace Gwent.Core
         public CombatRow Row { get; }
 
         public int Strength { get; }
+
+        public string MusterGroup { get; }
 
         public CardAbility Abilities { get; }
 
@@ -308,6 +327,8 @@ namespace Gwent.Core
                 PlayMusterMatches(player, card, row);
             }
 
+            ApplyRowScorchAbility(player, card);
+
             AdvanceTurnAfterAction(player);
         }
 
@@ -439,7 +460,7 @@ namespace Gwent.Core
         {
             var strongest = GetAllScorchTargets()
                 .Select(entry => new ScorchTarget(entry.Owner, entry.Row, entry.Card, GetModifiedCardStrength(entry.Owner, entry.Row, entry.Card)))
-                .Where(target => target.Score > 0)
+                .Where(target => target.Score >= 10)
                 .ToList();
 
             if (strongest.Count == 0)
@@ -449,6 +470,32 @@ namespace Gwent.Core
 
             var highestScore = strongest.Max(target => target.Score);
             foreach (var target in strongest.Where(target => target.Score == highestScore))
+            {
+                State(target.Owner).Rows[target.Row].Remove(target.Card);
+                State(target.Owner).Discard.Add(target.Card);
+            }
+        }
+
+        public void PlayRowScorch(PlayerId targetOwner, CombatRow row)
+        {
+            if (GetRowScore(targetOwner, row) < 10)
+            {
+                return;
+            }
+
+            var targets = State(targetOwner).Rows[row]
+                .Where(card => card.Kind == CardKind.Unit && !card.HasAbility(CardAbility.Hero))
+                .Select(card => new ScorchTarget(targetOwner, row, card, GetModifiedCardStrength(targetOwner, row, card)))
+                .Where(target => target.Score > 0)
+                .ToList();
+
+            if (targets.Count == 0)
+            {
+                return;
+            }
+
+            var highestScore = targets.Max(target => target.Score);
+            foreach (var target in targets.Where(target => target.Score == highestScore))
             {
                 State(target.Owner).Rows[target.Row].Remove(target.Card);
                 State(target.Owner).Discard.Add(target.Card);
@@ -686,6 +733,8 @@ namespace Gwent.Core
             {
                 PlayMusterMatches(player, card, selectedRow);
             }
+
+            ApplyRowScorchAbility(player, card);
         }
 
         private void PlaySpecialCard(PlayerId player, CardDefinition card, CombatRow? row, CardDefinition target)
@@ -748,15 +797,15 @@ namespace Gwent.Core
         private void PlayMusterMatches(PlayerId player, CardDefinition source, CombatRow row)
         {
             var state = State(player);
-            PlayMatchingCardsFromPile(state.Hand, source.Id, card => PlayUnit(player, card, row));
-            PlayMatchingCardsFromPile(state.Deck, source.Id, card => PlayUnit(player, card, row));
+            PlayMatchingCardsFromPile(state.Hand, source.MusterGroup, card => PlayUnit(player, card, row));
+            PlayMatchingCardsFromPile(state.Deck, source.MusterGroup, card => PlayUnit(player, card, row));
         }
 
-        private static void PlayMatchingCardsFromPile(List<CardDefinition> pile, string cardId, Action<CardDefinition> play)
+        private static void PlayMatchingCardsFromPile(List<CardDefinition> pile, string musterGroup, Action<CardDefinition> play)
         {
             for (var i = pile.Count - 1; i >= 0; i--)
             {
-                if (pile[i].Id != cardId)
+                if (!pile[i].HasAbility(CardAbility.Muster) || pile[i].MusterGroup != musterGroup)
                 {
                     continue;
                 }
@@ -764,6 +813,25 @@ namespace Gwent.Core
                 var card = pile[i];
                 pile.RemoveAt(i);
                 play(card);
+            }
+        }
+
+        private void ApplyRowScorchAbility(PlayerId player, CardDefinition card)
+        {
+            var opponent = OpponentOf(player);
+            if (card.HasAbility(CardAbility.ScorchClose))
+            {
+                PlayRowScorch(opponent, CombatRow.Close);
+            }
+
+            if (card.HasAbility(CardAbility.ScorchRanged))
+            {
+                PlayRowScorch(opponent, CombatRow.Ranged);
+            }
+
+            if (card.HasAbility(CardAbility.ScorchSiege))
+            {
+                PlayRowScorch(opponent, CombatRow.Siege);
             }
         }
 
