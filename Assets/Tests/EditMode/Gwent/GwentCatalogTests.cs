@@ -136,6 +136,54 @@ namespace Gwent.Tests
             Assert.AreEqual(new[] { "draw" }, drawMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
         }
 
+        [Test]
+        public void EveryLeaderHasStructuredAbility()
+        {
+            foreach (var faction in new[] { Faction.NorthernRealms, Faction.Nilfgaard, Faction.Monsters, Faction.Scoiatael })
+            {
+                Assert.IsTrue(
+                    GwentCatalog.GetDeck(faction).Leaders.All(leader => leader.Ability != GwentLeaderAbility.None),
+                    faction + " has a leader without a structured ability.");
+            }
+        }
+
+        [Test]
+        public void LeaderDefinitionsApplyDiscardAndMedicEffects()
+        {
+            var medicLockMatch = TestMatch(Faction.Nilfgaard, Faction.NorthernRealms);
+            var medic = new CardDefinition("medic", "Medic", Faction.Neutral, CardKind.Unit, CombatRow.Ranged, 5, CardAbility.Medic);
+            var restored = Unit("restored", CombatRow.Close, 4);
+            medicLockMatch.SetDiscard(PlayerId.Player, restored);
+
+            Leader(Faction.Nilfgaard, "nilfgaard_emhyr_invader_of_the_north").ApplyTo(medicLockMatch, PlayerId.Player);
+
+            Assert.Throws<System.InvalidOperationException>(() => medicLockMatch.PlayMedic(PlayerId.Player, medic, restored));
+
+            var relentlessMatch = TestMatch(Faction.Nilfgaard, Faction.NorthernRealms);
+            relentlessMatch.SetDiscard(PlayerId.Opponent, Unit("opponent_discard", CombatRow.Close, 4));
+
+            Leader(Faction.Nilfgaard, "nilfgaard_emhyr_the_relentless").ApplyTo(relentlessMatch, PlayerId.Player);
+
+            Assert.AreEqual(new[] { "opponent_discard" }, relentlessMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
+            Assert.IsEmpty(relentlessMatch.GetDiscard(PlayerId.Opponent));
+
+            var destroyerMatch = TestMatch(Faction.Monsters, Faction.Nilfgaard);
+            destroyerMatch.SetDiscard(PlayerId.Player, Unit("own_discard", CombatRow.Close, 4));
+
+            Leader(Faction.Monsters, "monsters_eredin_destroyer_of_worlds").ApplyTo(destroyerMatch, PlayerId.Player);
+
+            Assert.AreEqual(new[] { "own_discard" }, destroyerMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
+
+            var bringerMatch = TestMatch(Faction.Monsters, Faction.Nilfgaard);
+            bringerMatch.SetHand(PlayerId.Player, Unit("discard1", CombatRow.Close, 1), Unit("discard2", CombatRow.Close, 1));
+            bringerMatch.SetDeck(PlayerId.Player, Unit("drawn", CombatRow.Ranged, 1));
+
+            Leader(Faction.Monsters, "monsters_eredin_bringer_of_death").ApplyTo(bringerMatch, PlayerId.Player);
+
+            Assert.AreEqual(new[] { "drawn" }, bringerMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
+            Assert.AreEqual(new[] { "discard1", "discard2" }, bringerMatch.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
+        }
+
         private static void AssertCard(
             GwentDeckDefinition deck,
             string id,

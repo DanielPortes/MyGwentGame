@@ -13,7 +13,14 @@ namespace Gwent.Data
         ApplyHorn,
         ApplyWeather,
         ScorchRow,
-        DrawCard
+        DrawCard,
+        PeekOpponentHand,
+        DisableMedics,
+        DrawFromOpponentDiscard,
+        RestoreFromOwnDiscard,
+        DiscardTwoDrawOne,
+        MoveAgileToBestRow,
+        CancelOpponentLeader
     }
 
     public sealed class GwentLeaderDefinition
@@ -83,6 +90,25 @@ namespace Gwent.Data
                     return;
                 case GwentLeaderAbility.DrawCard:
                     match.DrawCards(owner, 1);
+                    return;
+                case GwentLeaderAbility.DisableMedics:
+                    match.DisableMedics();
+                    return;
+                case GwentLeaderAbility.DrawFromOpponentDiscard:
+                    match.MoveTopDiscardToHand(OpponentOf(owner), owner);
+                    return;
+                case GwentLeaderAbility.RestoreFromOwnDiscard:
+                    match.MoveTopDiscardToHand(owner, owner);
+                    return;
+                case GwentLeaderAbility.DiscardTwoDrawOne:
+                    match.DiscardFromHand(owner, 2);
+                    match.DrawCards(owner, 1);
+                    return;
+                case GwentLeaderAbility.MoveAgileToBestRow:
+                    match.MoveAgileCardsToBestRows(owner);
+                    return;
+                case GwentLeaderAbility.PeekOpponentHand:
+                case GwentLeaderAbility.CancelOpponentLeader:
                     return;
                 case GwentLeaderAbility.None:
                     return;
@@ -210,10 +236,10 @@ namespace Gwent.Data
             new[]
             {
                 Leader("nilfgaard_emhyr_emperor_of_nilfgaard", "Emhyr: Emperor of Nilfgaard", Faction.Nilfgaard, "Pick a Torrential Rain card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.TorrentialRain),
-                Leader("nilfgaard_emhyr_his_imperial_majesty", "Emhyr: His Imperial Majesty", Faction.Nilfgaard, "Look at three random cards in your opponent's hand."),
-                Leader("nilfgaard_emhyr_invader_of_the_north", "Emhyr: Invader of the North", Faction.Nilfgaard, "Abilities that restore cards from the discard pile are disabled."),
-                Leader("nilfgaard_emhyr_the_relentless", "Emhyr: The Relentless", Faction.Nilfgaard, "Draw a card from your opponent's discard pile."),
-                Leader("nilfgaard_emhyr_the_white_flame", "Emhyr: The White Flame", Faction.Nilfgaard, "Cancel your opponent's leader ability.")
+                Leader("nilfgaard_emhyr_his_imperial_majesty", "Emhyr: His Imperial Majesty", Faction.Nilfgaard, "Look at three random cards in your opponent's hand.", GwentLeaderAbility.PeekOpponentHand),
+                Leader("nilfgaard_emhyr_invader_of_the_north", "Emhyr: Invader of the North", Faction.Nilfgaard, "Abilities that restore cards from the discard pile are disabled.", GwentLeaderAbility.DisableMedics),
+                Leader("nilfgaard_emhyr_the_relentless", "Emhyr: The Relentless", Faction.Nilfgaard, "Draw a card from your opponent's discard pile.", GwentLeaderAbility.DrawFromOpponentDiscard),
+                Leader("nilfgaard_emhyr_the_white_flame", "Emhyr: The White Flame", Faction.Nilfgaard, "Cancel your opponent's leader ability.", GwentLeaderAbility.CancelOpponentLeader)
             },
             new[]
             {
@@ -253,10 +279,10 @@ namespace Gwent.Data
             new[]
             {
                 Leader("monsters_eredin_breacc_glas_the_treacherous", "Eredin Breacc Glas: The Treacherous", Faction.Monsters, "Double the strength of all Close Combat units unless a Commander's Horn is already present.", GwentLeaderAbility.ApplyHorn, CombatRow.Close),
-                Leader("monsters_eredin_bringer_of_death", "Eredin: Bringer of Death", Faction.Monsters, "Discard two cards and draw one card of your choice from your deck.", GwentLeaderAbility.DrawCard),
+                Leader("monsters_eredin_bringer_of_death", "Eredin: Bringer of Death", Faction.Monsters, "Discard two cards and draw one card of your choice from your deck.", GwentLeaderAbility.DiscardTwoDrawOne),
                 Leader("monsters_eredin_commander_of_the_red_riders", "Eredin: Commander of the Red Riders", Faction.Monsters, "Pick any weather card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.BitingFrost),
-                Leader("monsters_eredin_destroyer_of_worlds", "Eredin: Destroyer of Worlds", Faction.Monsters, "Restore one card from your discard pile to your hand."),
-                Leader("monsters_eredin_king_of_the_wild_hunt", "Eredin: King of the Wild Hunt", Faction.Monsters, "Cancel your opponent's leader ability.")
+                Leader("monsters_eredin_destroyer_of_worlds", "Eredin: Destroyer of Worlds", Faction.Monsters, "Restore one card from your discard pile to your hand.", GwentLeaderAbility.RestoreFromOwnDiscard),
+                Leader("monsters_eredin_king_of_the_wild_hunt", "Eredin: King of the Wild Hunt", Faction.Monsters, "Cancel your opponent's leader ability.", GwentLeaderAbility.CancelOpponentLeader)
             },
             new[]
             {
@@ -302,7 +328,7 @@ namespace Gwent.Data
             new[]
             {
                 Leader("scoiatael_francesca_daisy_of_the_valley", "Francesca Findabair: Daisy of the Valley", Faction.Scoiatael, "Draw an extra card at the beginning of the battle.", GwentLeaderAbility.DrawCard),
-                Leader("scoiatael_francesca_hope_of_the_aen_seidhe", "Francesca Findabair: Hope of the Aen Seidhe", Faction.Scoiatael, "Move agile units to the row where they maximize their strength."),
+                Leader("scoiatael_francesca_hope_of_the_aen_seidhe", "Francesca Findabair: Hope of the Aen Seidhe", Faction.Scoiatael, "Move agile units to the row where they maximize their strength.", GwentLeaderAbility.MoveAgileToBestRow),
                 Leader("scoiatael_francesca_pureblood_elf", "Francesca Findabair: Pureblood Elf", Faction.Scoiatael, "Pick a Biting Frost card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.BitingFrost),
                 Leader("scoiatael_francesca_queen_of_dol_blathanna", "Francesca Findabair: Queen of Dol Blathanna", Faction.Scoiatael, "Destroy your enemy's strongest Close Combat units if their combined strength is 10 or more.", GwentLeaderAbility.ScorchRow, CombatRow.Close),
                 Leader("scoiatael_francesca_the_beautiful", "Francesca Findabair: The Beautiful", Faction.Scoiatael, "Double the strength of all Ranged units unless a Commander's Horn is already present.", GwentLeaderAbility.ApplyHorn, CombatRow.Ranged)

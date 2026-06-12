@@ -163,6 +163,7 @@ namespace Gwent.Core
         private readonly DeterministicRandom _random;
         private readonly Dictionary<PlayerId, PlayerState> _players;
         private readonly HashSet<WeatherEffect> _weather = new HashSet<WeatherEffect>();
+        private bool _medicsDisabled;
 
         public GwentMatch(Faction playerFaction, Faction opponentFaction, DeterministicRandom random)
         {
@@ -238,6 +239,60 @@ namespace Gwent.Core
             var before = State(player).Hand.Count;
             Draw(player, amount);
             return State(player).Hand.Count - before;
+        }
+
+        public int DiscardFromHand(PlayerId player, int amount)
+        {
+            var state = State(player);
+            var discarded = 0;
+            while (discarded < amount && state.Hand.Count > 0)
+            {
+                var card = state.Hand[0];
+                state.Hand.RemoveAt(0);
+                state.Discard.Add(card);
+                discarded++;
+            }
+
+            return discarded;
+        }
+
+        public CardDefinition MoveTopDiscardToHand(PlayerId discardOwner, PlayerId handOwner)
+        {
+            var discard = State(discardOwner).Discard;
+            if (discard.Count == 0)
+            {
+                return null;
+            }
+
+            var card = discard[0];
+            discard.RemoveAt(0);
+            State(handOwner).Hand.Add(card);
+            return card;
+        }
+
+        public void DisableMedics()
+        {
+            _medicsDisabled = true;
+        }
+
+        public void MoveAgileCardsToBestRows(PlayerId player)
+        {
+            foreach (var row in new[] { CombatRow.Close, CombatRow.Ranged })
+            {
+                foreach (var card in State(player).Rows[row].Where(card => card.HasAbility(CardAbility.Agile)).ToList())
+                {
+                    var targetRow = GetRowScore(player, CombatRow.Ranged) > GetRowScore(player, CombatRow.Close)
+                        ? CombatRow.Ranged
+                        : CombatRow.Close;
+                    if (targetRow == row)
+                    {
+                        continue;
+                    }
+
+                    State(player).Rows[row].Remove(card);
+                    State(player).Rows[targetRow].Add(card);
+                }
+            }
         }
 
         public IEnumerable<CardDefinition> GetBoardCards(PlayerId player)
@@ -396,6 +451,11 @@ namespace Gwent.Core
             if (!medic.HasAbility(CardAbility.Medic))
             {
                 throw new InvalidOperationException("Only medic cards can restore units from discard.");
+            }
+
+            if (_medicsDisabled)
+            {
+                throw new InvalidOperationException("Medic abilities are disabled.");
             }
 
             if (!IsMedicTarget(restored))

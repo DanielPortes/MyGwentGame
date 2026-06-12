@@ -111,3 +111,15 @@
 - [x] Render mapped art in card views with text fallback for missing files.
 - [x] Run EditMode tests and Windows batchmode build.
 - [x] Commit with message `feat: map local gwent card art`.
+
+### Task 8: Leader Ability Completeness
+
+**Files:**
+- Modify: `Assets/Scripts/Gwent/Core/GwentCore.cs`
+- Modify: `Assets/Scripts/Gwent/Data/GwentCatalog.cs`
+- Modify: `Assets/Tests/EditMode/Gwent/GwentCatalogTests.cs`
+
+- [x] Add failing tests that every leader has a structured ability.
+- [x] Implement discard, medic-lock, agile movement, and cancel/peek leader ability categories.
+- [x] Run EditMode tests and Windows batchmode build.
+- [x] Commit with message `feat: complete gwent leader ability coverage`.
