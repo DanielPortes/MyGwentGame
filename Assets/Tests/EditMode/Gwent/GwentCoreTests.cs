@@ -195,6 +195,7 @@ namespace Gwent.Tests
             match.PlayUnit(PlayerId.Player, agile, CombatRow.Ranged);
 
             Assert.AreEqual(5, match.GetRowScore(PlayerId.Player, CombatRow.Ranged));
+            Assert.AreEqual(new[] { "agile" }, match.GetRowCards(PlayerId.Player, CombatRow.Ranged).Select(card => card.Id).ToArray());
             Assert.Throws<InvalidOperationException>(() => match.PlayUnit(PlayerId.Player, agile, CombatRow.Siege));
         }
 
@@ -230,6 +231,80 @@ namespace Gwent.Tests
             Assert.AreEqual(new[] { "reaver" }, match.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
             Assert.AreEqual(new[] { "decoy" }, match.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
             Assert.Throws<InvalidOperationException>(() => match.PlayDecoy(PlayerId.Player, decoy, hero));
+        }
+
+        [Test]
+        public void PlayCardFromHandAppliesWeatherAndDiscardsTheCard()
+        {
+            var match = TestMatch();
+            var frost = new CardDefinition("neutral_biting_frost", "Biting Frost", Faction.Neutral, CardKind.Weather, CombatRow.Close, 0);
+            match.SetHand(PlayerId.Player, frost);
+            match.PlayUnit(PlayerId.Player, Card("infantry", "Infantry", CombatRow.Close, 8));
+
+            match.PlayCardFromHand(PlayerId.Player, 0);
+
+            Assert.AreEqual(1, match.GetRowScore(PlayerId.Player, CombatRow.Close));
+            Assert.AreEqual(new[] { "neutral_biting_frost" }, match.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
+            Assert.AreEqual(PlayerId.Opponent, match.CurrentTurn);
+        }
+
+        [Test]
+        public void PlayCardFromHandAppliesHornAndScorchSpecials()
+        {
+            var hornMatch = TestMatch();
+            hornMatch.SetHand(PlayerId.Player, Special("neutral_commanders_horn", "Commander's Horn", CardAbility.CommandersHorn));
+            hornMatch.PlayUnit(PlayerId.Player, Card("catapult", "Catapult", CombatRow.Siege, 8));
+
+            hornMatch.PlayCardFromHand(PlayerId.Player, 0, CombatRow.Siege);
+
+            Assert.AreEqual(16, hornMatch.GetRowScore(PlayerId.Player, CombatRow.Siege));
+            Assert.AreEqual(new[] { "neutral_commanders_horn" }, hornMatch.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
+
+            var scorchMatch = TestMatch();
+            scorchMatch.SetHand(PlayerId.Player, Special("neutral_scorch", "Scorch", CardAbility.Scorch));
+            scorchMatch.PlayUnit(PlayerId.Player, Card("weak", "Weak", CombatRow.Close, 4));
+            scorchMatch.PlayUnit(PlayerId.Opponent, Card("strong", "Strong", CombatRow.Ranged, 10));
+
+            scorchMatch.PlayCardFromHand(PlayerId.Player, 0);
+
+            Assert.AreEqual(0, scorchMatch.GetTotalScore(PlayerId.Opponent));
+            Assert.AreEqual(new[] { "neutral_scorch" }, scorchMatch.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
+            Assert.AreEqual(new[] { "strong" }, scorchMatch.GetDiscard(PlayerId.Opponent).Select(card => card.Id).ToArray());
+        }
+
+        [Test]
+        public void PlayCardFromHandHandlesSpyDecoyAndMedicTargets()
+        {
+            var spyMatch = TestMatch();
+            spyMatch.SetDeck(PlayerId.Player, Card("draw1", "Draw 1", CombatRow.Close, 1), Card("draw2", "Draw 2", CombatRow.Close, 1));
+            spyMatch.SetHand(PlayerId.Player, Card("thaler", "Thaler", CombatRow.Siege, 1, CardAbility.Spy));
+
+            spyMatch.PlayCardFromHand(PlayerId.Player, 0);
+
+            Assert.AreEqual(1, spyMatch.GetRowScore(PlayerId.Opponent, CombatRow.Siege));
+            Assert.AreEqual(new[] { "draw1", "draw2" }, spyMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
+
+            var decoyMatch = TestMatch();
+            var unit = Card("ves", "Ves", CombatRow.Close, 5);
+            decoyMatch.PlayUnit(PlayerId.Player, unit);
+            decoyMatch.SetHand(PlayerId.Player, Special("neutral_decoy", "Decoy", CardAbility.Decoy));
+
+            decoyMatch.PlayCardFromHand(PlayerId.Player, 0, target: unit);
+
+            Assert.AreEqual(0, decoyMatch.GetRowScore(PlayerId.Player, CombatRow.Close));
+            Assert.AreEqual(new[] { "ves" }, decoyMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
+            Assert.AreEqual(new[] { "neutral_decoy" }, decoyMatch.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
+
+            var medicMatch = TestMatch();
+            var restored = Card("catapult", "Catapult", CombatRow.Siege, 8);
+            medicMatch.SetDiscard(PlayerId.Player, restored);
+            medicMatch.SetHand(PlayerId.Player, Card("medic", "Medic", CombatRow.Ranged, 5, CardAbility.Medic));
+
+            medicMatch.PlayCardFromHand(PlayerId.Player, 0, target: restored);
+
+            Assert.AreEqual(5, medicMatch.GetRowScore(PlayerId.Player, CombatRow.Ranged));
+            Assert.AreEqual(8, medicMatch.GetRowScore(PlayerId.Player, CombatRow.Siege));
+            Assert.IsEmpty(medicMatch.GetHand(PlayerId.Player));
         }
 
         [Test]

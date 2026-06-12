@@ -62,11 +62,11 @@
 - Modify: `Assets/Scenes/Game.unity`
 - Modify: `Assets/Scenes/End.unity`
 
-- [ ] Replace the old fixed-card UI with dynamic faction selection, mulligan, board, hand, pass button, leader button, and result flow.
-- [ ] Render six combat rows, score totals, round gems, weather indicators, deck/discard counts, and card zoom.
-- [ ] Connect UI actions to the core engine.
-- [ ] Run EditMode tests and a Windows batchmode build.
-- [ ] Commit with message `feat: build gwent match UI`.
+- [x] Replace the old fixed-card UI with dynamic faction selection, mulligan, board, hand, pass button, leader button, and result flow.
+- [x] Render six combat rows, score totals, round gems, weather indicators, deck/discard counts, and card zoom.
+- [x] Connect UI actions to the core engine.
+- [x] Run EditMode tests and a Windows batchmode build.
+- [x] Commit with message `feat: build gwent match UI`.
 
 ### Task 5: Animation And Polish
 

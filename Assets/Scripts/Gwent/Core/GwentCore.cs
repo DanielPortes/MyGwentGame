@@ -45,7 +45,9 @@ namespace Gwent.Core
         Medic = 1 << 4,
         Muster = 1 << 5,
         Agile = 1 << 6,
-        Decoy = 1 << 7
+        Decoy = 1 << 7,
+        Scorch = 1 << 8,
+        CommandersHorn = 1 << 9
     }
 
     public enum WeatherEffect
@@ -217,6 +219,11 @@ namespace Gwent.Core
             return State(player).Rows.Values.SelectMany(row => row);
         }
 
+        public IReadOnlyList<CardDefinition> GetRowCards(PlayerId player, CombatRow row)
+        {
+            return State(player).Rows[row].AsReadOnly();
+        }
+
         public int GetRoundWins(PlayerId player)
         {
             return State(player).RoundWins;
@@ -299,6 +306,32 @@ namespace Gwent.Core
             if (card.HasAbility(CardAbility.Muster))
             {
                 PlayMusterMatches(player, card, row);
+            }
+
+            AdvanceTurnAfterAction(player);
+        }
+
+        public void PlayCardFromHand(PlayerId player, int handIndex, CombatRow? row = null, CardDefinition target = null)
+        {
+            EnsureCanAct(player);
+
+            var state = State(player);
+            if (handIndex < 0 || handIndex >= state.Hand.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(handIndex));
+            }
+
+            var card = state.Hand[handIndex];
+            state.Hand.RemoveAt(handIndex);
+
+            try
+            {
+                PlayCard(player, card, row, target);
+            }
+            catch
+            {
+                state.Hand.Insert(handIndex, card);
+                throw;
             }
 
             AdvanceTurnAfterAction(player);
@@ -611,6 +644,105 @@ namespace Gwent.Core
         private static bool IsMedicTarget(CardDefinition card)
         {
             return card.Kind == CardKind.Unit && !card.HasAbility(CardAbility.Hero);
+        }
+
+        private void PlayCard(PlayerId player, CardDefinition card, CombatRow? row, CardDefinition target)
+        {
+            switch (card.Kind)
+            {
+                case CardKind.Unit:
+                    PlayUnitCard(player, card, row, target);
+                    return;
+                case CardKind.Special:
+                    PlaySpecialCard(player, card, row, target);
+                    return;
+                case CardKind.Weather:
+                    ApplyWeather(GetWeatherEffect(card));
+                    State(player).Discard.Add(card);
+                    return;
+                default:
+                    throw new InvalidOperationException("This card kind cannot be played from hand.");
+            }
+        }
+
+        private void PlayUnitCard(PlayerId player, CardDefinition card, CombatRow? row, CardDefinition target)
+        {
+            if (card.HasAbility(CardAbility.Spy))
+            {
+                PlaySpy(player, card);
+                return;
+            }
+
+            if (card.HasAbility(CardAbility.Medic) && target != null)
+            {
+                PlayMedic(player, card, target);
+                return;
+            }
+
+            var selectedRow = row ?? card.Row;
+            PlayUnit(player, card, selectedRow);
+
+            if (card.HasAbility(CardAbility.Muster))
+            {
+                PlayMusterMatches(player, card, selectedRow);
+            }
+        }
+
+        private void PlaySpecialCard(PlayerId player, CardDefinition card, CombatRow? row, CardDefinition target)
+        {
+            if (card.HasAbility(CardAbility.Decoy))
+            {
+                PlayDecoy(player, card, target);
+                return;
+            }
+
+            if (card.HasAbility(CardAbility.CommandersHorn))
+            {
+                if (!row.HasValue)
+                {
+                    throw new InvalidOperationException("Commander's Horn requires a target row.");
+                }
+
+                ApplyHorn(player, row.Value);
+                State(player).Discard.Add(card);
+                return;
+            }
+
+            if (card.HasAbility(CardAbility.Scorch))
+            {
+                PlayScorch(player);
+                State(player).Discard.Add(card);
+                return;
+            }
+
+            State(player).Discard.Add(card);
+        }
+
+        private static WeatherEffect GetWeatherEffect(CardDefinition card)
+        {
+            var id = card.Id.ToLowerInvariant();
+            var name = card.Name.ToLowerInvariant();
+            if (id.Contains("biting_frost") || name == "biting frost")
+            {
+                return WeatherEffect.BitingFrost;
+            }
+
+            if (id.Contains("impenetrable_fog") || name == "impenetrable fog")
+            {
+                return WeatherEffect.ImpenetrableFog;
+            }
+
+            if (id.Contains("torrential_rain") || name == "torrential rain")
+            {
+                return WeatherEffect.TorrentialRain;
+            }
+
+            if (id.Contains("clear_weather") || name == "clear weather")
+            {
+                return WeatherEffect.ClearWeather;
+            }
+
+            throw new InvalidOperationException("Unknown weather card.");
         }
 
         private void PlayMusterMatches(PlayerId player, CardDefinition source, CombatRow row)

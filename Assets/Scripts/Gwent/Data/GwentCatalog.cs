@@ -256,7 +256,7 @@ namespace Gwent.Data
         {
             Weather("neutral_biting_frost", "Biting Frost"),
             Weather("neutral_clear_weather", "Clear Weather"),
-            Special("neutral_commanders_horn", "Commander's Horn"),
+            Special("neutral_commanders_horn", "Commander's Horn", CardAbility.CommandersHorn),
             Unit("neutral_cirilla_fiona_elen_riannon", "Cirilla Fiona Elen Riannon", Faction.Neutral, CombatRow.Close, 15, CardAbility.Hero),
             Special("neutral_decoy", "Decoy", CardAbility.Decoy),
             Unit("neutral_dandelion", "Dandelion", Faction.Neutral, CombatRow.Close, 2, CardAbility.MoraleBoost),
@@ -264,7 +264,7 @@ namespace Gwent.Data
             Unit("neutral_geralt_of_rivia", "Geralt of Rivia", Faction.Neutral, CombatRow.Close, 15, CardAbility.Hero),
             Weather("neutral_impenetrable_fog", "Impenetrable Fog"),
             Unit("neutral_mysterious_elf", "Mysterious Elf", Faction.Neutral, CombatRow.Close, 0, CardAbility.Hero | CardAbility.Spy),
-            Special("neutral_scorch", "Scorch"),
+            Special("neutral_scorch", "Scorch", CardAbility.Scorch),
             Weather("neutral_torrential_rain", "Torrential Rain"),
             Unit("neutral_triss_merigold", "Triss Merigold", Faction.Neutral, CombatRow.Close, 7, CardAbility.Hero),
             Unit("neutral_vesemir", "Vesemir", Faction.Neutral, CombatRow.Close, 6),

@@ -28,9 +28,8 @@ namespace Gwent.Tests
         [Test]
         public void NeutralCatalogIncludesCoreWitcher3Cards()
         {
-            var ids = GwentCatalog.GetNeutralCards()
-                .Select(entry => entry.Card.Id)
-                .ToArray();
+            var neutralCards = GwentCatalog.GetNeutralCards().ToArray();
+            var ids = neutralCards.Select(entry => entry.Card.Id).ToArray();
 
             CollectionAssert.IsSubsetOf(
                 new[]
@@ -49,6 +48,9 @@ namespace Gwent.Tests
                     "neutral_clear_weather"
                 },
                 ids);
+
+            AssertNeutralAbility(neutralCards, "neutral_commanders_horn", CardAbility.CommandersHorn);
+            AssertNeutralAbility(neutralCards, "neutral_scorch", CardAbility.Scorch);
         }
 
         [Test]
@@ -102,6 +104,11 @@ namespace Gwent.Tests
         private static bool IsSpecialOrWeather(CardDefinition card)
         {
             return card.Kind == CardKind.Special || card.Kind == CardKind.Weather;
+        }
+
+        private static void AssertNeutralAbility(GwentCardCatalogEntry[] cards, string id, CardAbility ability)
+        {
+            Assert.IsTrue(cards.Single(entry => entry.Card.Id == id).Card.HasAbility(ability));
         }
     }
 }
