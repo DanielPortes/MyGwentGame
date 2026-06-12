@@ -28,7 +28,8 @@ namespace Gwent.UI
             Text opponentDeckCount,
             Text playerDiscardCount,
             Text opponentDiscardCount,
-            Text weatherText)
+            Text weatherText,
+            Text roundBannerText)
         {
             Root = root;
             _rows = new List<GwentRowView>(rows);
@@ -48,6 +49,7 @@ namespace Gwent.UI
             PlayerDiscardCount = playerDiscardCount;
             OpponentDiscardCount = opponentDiscardCount;
             WeatherText = weatherText;
+            RoundBannerText = roundBannerText;
         }
 
         public GameObject Root { get; }
@@ -88,6 +90,8 @@ namespace Gwent.UI
         public Text OpponentDiscardCount { get; }
 
         public Text WeatherText { get; }
+
+        public Text RoundBannerText { get; }
     }
 
     public static class GwentViewFactory
@@ -158,6 +162,8 @@ namespace Gwent.UI
 
             var statusText = CreateText("Escolha uma facção", statusPanel.transform, 18, TextAnchor.MiddleCenter, AccentGold);
             statusText.gameObject.AddComponent<LayoutElement>().preferredHeight = 52;
+            var roundBanner = CreateText("Rodada 1", statusPanel.transform, 21, TextAnchor.MiddleCenter, AccentGold);
+            roundBanner.gameObject.AddComponent<LayoutElement>().preferredHeight = 42;
             var cardZoom = CreateText("Selecione uma carta", statusPanel.transform, 14, TextAnchor.UpperLeft, new Color(0.90f, 0.88f, 0.76f, 1f));
             cardZoom.gameObject.AddComponent<LayoutElement>().preferredHeight = 92;
             var opponentScore = CreateText("Oponente: 0", statusPanel.transform, 18, TextAnchor.MiddleLeft, Color.white);
@@ -214,12 +220,14 @@ namespace Gwent.UI
                 opponentDeck,
                 playerDiscard,
                 opponentDiscard,
-                weather);
+                weather,
+                roundBanner);
         }
 
         public static GwentCardView CreateCard(Transform parent, CardDefinition card, bool faceUp)
         {
             var root = CreatePanel(card.Id, parent, new Color(0.22f, 0.18f, 0.12f, 1f));
+            root.AddComponent<CanvasGroup>();
             var rect = root.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(104, 144);
             var element = root.AddComponent<LayoutElement>();
@@ -292,8 +300,14 @@ namespace Gwent.UI
             cardLayout.childControlHeight = true;
             cardLayout.childControlWidth = false;
 
+            var overlay = CreatePanel("Weather Overlay", rowObject.transform, new Color(0.66f, 0.80f, 0.92f, 0f));
+            var overlayImage = overlay.GetComponent<Image>();
+            overlayImage.raycastTarget = false;
+            overlay.AddComponent<LayoutElement>().ignoreLayout = true;
+            Stretch(overlay.GetComponent<RectTransform>());
+
             var view = rowObject.AddComponent<GwentRowView>();
-            view.Configure(owner, row, cardsRoot.transform, score, label, button);
+            view.Configure(owner, row, cardsRoot.transform, score, label, button, overlayImage);
             return view;
         }
 

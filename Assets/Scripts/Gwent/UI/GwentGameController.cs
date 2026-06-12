@@ -343,9 +343,11 @@ namespace Gwent.UI
             foreach (var rowView in Board.Rows)
             {
                 ClearChildren(rowView.CardsRoot);
+                rowView.SetWeatherActive(false);
                 foreach (var card in _match.GetRowCards(rowView.Owner, rowView.Row))
                 {
-                    GwentViewFactory.CreateCard(rowView.CardsRoot, card, true);
+                    var cardView = GwentViewFactory.CreateCard(rowView.CardsRoot, card, true);
+                    cardView.CompleteEntranceAnimation();
                 }
 
                 rowView.SetScore(_match.GetRowScore(rowView.Owner, rowView.Row));
@@ -357,11 +359,16 @@ namespace Gwent.UI
                 var handIndex = i;
                 var cardView = GwentViewFactory.CreateCard(Board.PlayerHand, playerHand[i], true);
                 cardView.Button.onClick.AddListener(() => OnPlayerCardClicked(handIndex));
+                if (handIndex == _selectedHandIndex)
+                {
+                    cardView.SetHighlighted(true);
+                }
             }
 
             foreach (var card in _match.GetHand(PlayerId.Opponent))
             {
-                GwentViewFactory.CreateCard(Board.OpponentHand, card, false);
+                var cardView = GwentViewFactory.CreateCard(Board.OpponentHand, card, false);
+                cardView.CompleteEntranceAnimation();
             }
 
             Board.PlayerScoreText.text = "Você: " + _match.GetTotalScore(PlayerId.Player);
@@ -373,6 +380,7 @@ namespace Gwent.UI
             Board.PlayerDiscardCount.text = "Descarte: " + _match.GetDiscard(PlayerId.Player).Count;
             Board.OpponentDiscardCount.text = "Descarte OP: " + _match.GetDiscard(PlayerId.Opponent).Count;
             Board.WeatherText.text = "Clima: ativo no tabuleiro";
+            Board.RoundBannerText.text = StatusText();
             Board.StatusText.text = StatusText();
             Board.PassButton.interactable = CanPlayerAct();
             Board.MulliganButton.interactable = !_mulligansLocked;

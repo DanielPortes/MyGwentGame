@@ -76,7 +76,7 @@
 - Modify: `Assets/Scripts/Gwent/UI/GwentRowView.cs`
 - Modify: `Assets/Scenes/Game.unity`
 
-- [ ] Add card slide, flip, score pulse, weather overlay, pass banner, and round result animations.
-- [ ] Verify the UI remains readable at desktop resolution.
-- [ ] Run EditMode tests and Windows batchmode build.
-- [ ] Commit with message `feat: add gwent board animations`.
+- [x] Add card slide, flip, score pulse, weather overlay, pass banner, and round result animations.
+- [x] Verify the UI remains readable at desktop resolution.
+- [x] Run EditMode tests and Windows batchmode build.
+- [x] Commit with message `feat: add gwent board animations`.

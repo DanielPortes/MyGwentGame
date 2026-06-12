@@ -72,6 +72,59 @@ namespace Gwent.Tests
         }
 
         [Test]
+        public void ViewFactoryAddsAnimationAndPolishSurfaces()
+        {
+            var root = Root();
+            var board = GwentViewFactory.CreateBoard(root.transform);
+            var card = GwentViewFactory.CreateCard(
+                root.transform,
+                new CardDefinition("test", "Test", Faction.Neutral, CardKind.Unit, CombatRow.Close, 1),
+                false);
+
+            Assert.NotNull(board.RoundBannerText);
+            Assert.IsTrue(board.Rows.All(row => row.WeatherOverlay != null));
+            Assert.NotNull(card.CanvasGroup);
+            Assert.NotNull(card.RectTransform);
+        }
+
+        [Test]
+        public void CardViewCanFlipSlideAndHighlightImmediately()
+        {
+            var root = Root();
+            var card = new CardDefinition("test", "Test Card", Faction.Neutral, CardKind.Unit, CombatRow.Close, 6);
+            var view = GwentViewFactory.CreateCard(root.transform, card, false);
+
+            view.SetEntranceOffset(new Vector2(24, 0));
+            view.CompleteEntranceAnimation();
+            view.CompleteFlipAnimation(true);
+            view.SetHighlighted(true);
+
+            Assert.IsTrue(view.FaceUp);
+            Assert.AreEqual("Test Card", view.NameText.text);
+            Assert.AreEqual(1f, view.CanvasGroup.alpha);
+            Assert.AreEqual(Vector2.zero, view.RectTransform.anchoredPosition);
+            Assert.Greater(view.transform.localScale.x, 1f);
+        }
+
+        [Test]
+        public void RowWeatherOverlayAndScorePulseCanBeToggled()
+        {
+            var root = Root();
+            var board = GwentViewFactory.CreateBoard(root.transform);
+            var row = board.Rows.First();
+
+            row.SetWeatherActive(true);
+            row.PulseScoreImmediate();
+
+            Assert.Greater(row.WeatherOverlay.color.a, 0f);
+            Assert.Greater(row.ScoreText.transform.localScale.x, 1f);
+
+            row.SetWeatherActive(false);
+
+            Assert.AreEqual(0f, row.WeatherOverlay.color.a);
+        }
+
+        [Test]
         public void GameControllerStartsMatchAndRendersOpeningHand()
         {
             var root = Root();

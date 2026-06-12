@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Gwent.Core;
 using UnityEngine;
@@ -23,6 +24,10 @@ namespace Gwent.UI
 
         public Image Background { get; private set; }
 
+        public RectTransform RectTransform { get; private set; }
+
+        public CanvasGroup CanvasGroup { get; private set; }
+
         public void Configure(Text nameText, Text strengthText, Text rowText, Text abilityText, Button button, Image background)
         {
             NameText = nameText;
@@ -31,6 +36,12 @@ namespace Gwent.UI
             AbilityText = abilityText;
             Button = button;
             Background = background;
+            RectTransform = GetComponent<RectTransform>();
+            CanvasGroup = GetComponent<CanvasGroup>();
+            if (CanvasGroup == null)
+            {
+                CanvasGroup = gameObject.AddComponent<CanvasGroup>();
+            }
         }
 
         public void Bind(CardDefinition card, bool faceUp)
@@ -53,6 +64,73 @@ namespace Gwent.UI
             RowText.text = FormatRow(card);
             AbilityText.text = FormatAbilities(card.Abilities);
             Background.color = ColorFor(card.Faction);
+        }
+
+        public void SetEntranceOffset(Vector2 offset)
+        {
+            RectTransform.anchoredPosition = offset;
+            CanvasGroup.alpha = 0f;
+        }
+
+        public void CompleteEntranceAnimation()
+        {
+            RectTransform.anchoredPosition = Vector2.zero;
+            CanvasGroup.alpha = 1f;
+        }
+
+        public IEnumerator AnimateEntrance(float duration)
+        {
+            if (duration <= 0f)
+            {
+                CompleteEntranceAnimation();
+                yield break;
+            }
+
+            var start = RectTransform.anchoredPosition;
+            for (var elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            {
+                var progress = Mathf.Clamp01(elapsed / duration);
+                RectTransform.anchoredPosition = Vector2.Lerp(start, Vector2.zero, progress);
+                CanvasGroup.alpha = progress;
+                yield return null;
+            }
+
+            CompleteEntranceAnimation();
+        }
+
+        public void CompleteFlipAnimation(bool faceUp)
+        {
+            Bind(Card, faceUp);
+            transform.localScale = Vector3.one;
+        }
+
+        public IEnumerator AnimateFlip(bool faceUp, float duration)
+        {
+            if (duration <= 0f)
+            {
+                CompleteFlipAnimation(faceUp);
+                yield break;
+            }
+
+            for (var elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            {
+                var progress = Mathf.Clamp01(elapsed / duration);
+                var width = Mathf.Abs(Mathf.Cos(progress * Mathf.PI));
+                transform.localScale = new Vector3(width, transform.localScale.y, transform.localScale.z);
+                if (progress >= 0.5f && FaceUp != faceUp)
+                {
+                    Bind(Card, faceUp);
+                }
+
+                yield return null;
+            }
+
+            CompleteFlipAnimation(faceUp);
+        }
+
+        public void SetHighlighted(bool highlighted)
+        {
+            transform.localScale = highlighted ? new Vector3(1.06f, 1.06f, 1f) : Vector3.one;
         }
 
         private static string FormatRow(CardDefinition card)
