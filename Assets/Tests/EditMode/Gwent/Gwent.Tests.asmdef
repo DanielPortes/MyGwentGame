@@ -2,7 +2,8 @@
   "name": "Gwent.Tests",
   "rootNamespace": "Gwent.Tests",
   "references": [
-    "Gwent.Core"
+    "Gwent.Core",
+    "Gwent.Data"
   ],
   "includePlatforms": [
     "Editor"

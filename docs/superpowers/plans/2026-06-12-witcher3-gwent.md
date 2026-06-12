@@ -44,11 +44,11 @@
 - Create: `Assets/Scripts/Gwent/Data/Gwent.Data.asmdef`
 - Modify: `Assets/Tests/EditMode/Gwent/GwentCoreTests.cs`
 
-- [ ] Add failing tests that every base faction has a playable deck, leader, and at least 22 unit cards after neutral cards are included.
-- [ ] Implement a data catalog for Northern Realms, Nilfgaard, Monsters, Scoia'tael, and Neutral cards.
-- [ ] Map existing local art to known cards where available and use placeholders for missing art.
-- [ ] Run EditMode tests and confirm all pass.
-- [ ] Commit with message `feat: add witcher 3 gwent card catalog`.
+- [x] Add failing tests that every base faction has a playable deck, leader, and at least 22 unit cards after neutral cards are included.
+- [x] Implement a data catalog for Northern Realms, Nilfgaard, Monsters, Scoia'tael, and Neutral cards.
+- [x] Map existing local art to known cards where available and use placeholders for missing art.
+- [x] Run EditMode tests and confirm all pass.
+- [x] Commit with message `feat: add witcher 3 gwent card catalog`.
 
 ### Task 4: Unity UI Scene
 
