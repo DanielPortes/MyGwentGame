@@ -1,8 +1,10 @@
 using System.Linq;
+using System.Reflection;
 using Gwent.Core;
 using Gwent.UI;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Gwent.Tests
@@ -17,6 +19,11 @@ namespace Gwent.Tests
             if (_root != null)
             {
                 Object.DestroyImmediate(_root);
+            }
+
+            foreach (var eventSystem in Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None))
+            {
+                Object.DestroyImmediate(eventSystem.gameObject);
             }
         }
 
@@ -138,6 +145,21 @@ namespace Gwent.Tests
             Assert.AreEqual(6, controller.Board.Rows.Count);
             Assert.AreEqual(10, controller.Board.PlayerHand.childCount);
             Assert.Greater(controller.Board.OpponentDeckCount.text.Length, 0);
+        }
+
+        [Test]
+        public void GameControllerCreatesEventSystemForRuntimeDeckSelection()
+        {
+            var root = new GameObject("Runtime Controller");
+            _root = root;
+            var controller = root.AddComponent<GwentGameController>();
+
+            typeof(GwentGameController)
+                .GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(controller, null);
+
+            Assert.NotNull(Object.FindFirstObjectByType<EventSystem>());
+            Assert.NotNull(root.GetComponentInChildren<Canvas>());
         }
 
         private GameObject Root()

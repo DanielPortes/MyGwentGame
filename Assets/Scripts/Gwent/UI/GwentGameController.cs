@@ -50,17 +50,7 @@ namespace Gwent.UI
                 return;
             }
 
-            var legacyManager = GameObject.Find("GameManager");
-            if (legacyManager != null)
-            {
-                legacyManager.SetActive(false);
-            }
-
-            var legacyCanvas = GameObject.Find("Main Canvas");
-            if (legacyCanvas != null)
-            {
-                legacyCanvas.SetActive(false);
-            }
+            DisableLegacySceneObjects();
 
             EnsureEventSystem();
             new GameObject("Witcher 3 Gwent Runtime").AddComponent<GwentGameController>();
@@ -70,6 +60,7 @@ namespace Gwent.UI
         {
             if (!_initializedForTests)
             {
+                EnsureEventSystem();
                 ShowDeckSelection();
             }
         }
@@ -460,6 +451,20 @@ namespace Gwent.UI
             }
 
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        }
+
+        private static void DisableLegacySceneObjects()
+        {
+            var legacyManager = GameObject.Find("GameManager");
+            if (legacyManager != null)
+            {
+                legacyManager.SetActive(false);
+            }
+
+            foreach (var canvas in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+            {
+                canvas.gameObject.SetActive(false);
+            }
         }
 
         private static void ClearChildren(Transform parent)
