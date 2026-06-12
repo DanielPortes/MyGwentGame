@@ -33,6 +33,11 @@ jobs:
           test -f docs/webgl/Build/WebGL.loader.js
           test -f docs/webgl/Build/WebGL.wasm
           test -d docs/webgl/TemplateData
+          grep -q 'WebGL.loader.js' docs/webgl/index.html
+          grep -q 'WebGL.data' docs/webgl/index.html
+          grep -q 'WebGL.framework.js' docs/webgl/index.html
+          grep -q 'WebGL.wasm' docs/webgl/index.html
+          ! grep -q 'webgl\.' docs/webgl/index.html
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

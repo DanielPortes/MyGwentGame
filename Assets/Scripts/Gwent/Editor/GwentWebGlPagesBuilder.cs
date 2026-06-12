@@ -130,7 +130,11 @@ html, body {
             File.WriteAllText(stylePath, css);
 
             var index = File.ReadAllText(indexPath)
-                .Replace("<title>Unity Web Player | Gwent</title>", "<title>The Witcher 3 Gwent</title>");
+                .Replace("<title>Unity Web Player | Gwent</title>", "<title>The Witcher 3 Gwent</title>")
+                .Replace("/webgl.loader.js", "/WebGL.loader.js")
+                .Replace("/webgl.data", "/WebGL.data")
+                .Replace("/webgl.framework.js", "/WebGL.framework.js")
+                .Replace("/webgl.wasm", "/WebGL.wasm");
             File.WriteAllText(indexPath, index);
         }
 
