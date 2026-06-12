@@ -153,6 +153,11 @@ html, body {
 
         private static void EnsureWebGlEntryScene()
         {
+            if (File.Exists(WebGlEntryScene))
+            {
+                return;
+            }
+
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var cameraObject = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));

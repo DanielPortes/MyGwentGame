@@ -919,13 +919,21 @@ namespace Gwent.Core
                                                  && other.Id == card.Id);
             }
 
-            if (State(player).HornRows.Contains(row))
+            if (State(player).HornRows.Contains(row) || HasUnitHornForCard(rowCards, card))
             {
                 score *= 2;
             }
 
             score += CountMoraleBoosts(rowCards, card);
             return score;
+        }
+
+        private static bool HasUnitHornForCard(IEnumerable<CardDefinition> rowCards, CardDefinition target)
+        {
+            return rowCards.Any(card => !ReferenceEquals(card, target)
+                                        && card.Kind == CardKind.Unit
+                                        && !card.HasAbility(CardAbility.Hero)
+                                        && card.HasAbility(CardAbility.CommandersHorn));
         }
 
         private static int CountMoraleBoosts(IEnumerable<CardDefinition> rowCards, CardDefinition target)

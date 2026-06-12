@@ -1,5 +1,7 @@
+using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -63,6 +65,24 @@ namespace Gwent.Tests
 
             StringAssert.Contains("Witcher 3 Gwent Runtime", scene);
             StringAssert.Contains("guid: bc2f372cbe1e1994a92653198a5d9abf", scene);
+        }
+
+        [Test]
+        public void WebGlEntryScenePreparationDoesNotRewriteExistingScene()
+        {
+            var scenePath = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "Scenes", "GwentWebGL.unity");
+            var before = File.ReadAllText(scenePath);
+            var builderType = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Select(assembly => assembly.GetType("Gwent.Editor.GwentWebGlPagesBuilder"))
+                .FirstOrDefault(type => type != null);
+
+            Assert.NotNull(builderType, "The WebGL Pages builder must be available in edit mode.");
+
+            builderType.GetMethod("EnsureWebGlEntryScene", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, null);
+
+            Assert.AreEqual(before, File.ReadAllText(scenePath));
         }
 
         [Test]

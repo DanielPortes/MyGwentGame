@@ -367,7 +367,7 @@ namespace Gwent.Data
             Special("neutral_commanders_horn", "Commander's Horn", CardAbility.CommandersHorn),
             Unit("neutral_cirilla_fiona_elen_riannon", "Cirilla Fiona Elen Riannon", Faction.Neutral, CombatRow.Close, 15, CardAbility.Hero),
             Special("neutral_decoy", "Decoy", CardAbility.Decoy),
-            Unit("neutral_dandelion", "Dandelion", Faction.Neutral, CombatRow.Close, 2, CardAbility.MoraleBoost),
+            Unit("neutral_dandelion", "Dandelion", Faction.Neutral, CombatRow.Close, 2, CardAbility.CommandersHorn),
             Unit("neutral_emiel_regis_rohellec_terzieff", "Emiel Regis Rohellec Terzieff", Faction.Neutral, CombatRow.Close, 5),
             Unit("neutral_geralt_of_rivia", "Geralt of Rivia", Faction.Neutral, CombatRow.Close, 15, CardAbility.Hero),
             Weather("neutral_impenetrable_fog", "Impenetrable Fog"),

@@ -67,6 +67,23 @@ namespace Gwent.Tests
         }
 
         [Test]
+        public void UnitCommandersHornDoublesRowButNotItselfAndDoesNotStackWithSpecialHorn()
+        {
+            var match = TestMatch();
+            var dandelion = Card("neutral_dandelion", "Dandelion", CombatRow.Close, 2, CardAbility.CommandersHorn);
+            var infantry = Card("infantry", "Infantry", CombatRow.Close, 5);
+
+            match.PlayUnit(PlayerId.Player, dandelion);
+            match.PlayUnit(PlayerId.Player, infantry);
+
+            Assert.AreEqual(12, match.GetRowScore(PlayerId.Player, CombatRow.Close));
+
+            match.ApplyHorn(PlayerId.Player, CombatRow.Close);
+
+            Assert.AreEqual(14, match.GetRowScore(PlayerId.Player, CombatRow.Close));
+        }
+
+        [Test]
         public void SpyPlaysOnOpponentBoardAndDrawsTwoCardsForOwner()
         {
             var match = TestMatch();

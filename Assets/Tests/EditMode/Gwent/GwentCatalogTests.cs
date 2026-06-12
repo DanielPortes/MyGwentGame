@@ -73,6 +73,10 @@ namespace Gwent.Tests
             AssertCard(scoiatael, "scoiatael_schirru", CombatRow.Siege, 8, CardAbility.ScorchSiege, 1);
             AssertCard(scoiatael, "scoiatael_vrihedd_brigade_veteran", CombatRow.Close, 5, CardAbility.Agile, 2);
             AssertNeutralAbility(GwentCatalog.GetNeutralCards().ToArray(), "neutral_villentretenmerth", CardAbility.ScorchClose);
+            AssertNeutralAbility(GwentCatalog.GetNeutralCards().ToArray(), "neutral_dandelion", CardAbility.CommandersHorn);
+            Assert.IsFalse(GwentCatalog.GetNeutralCards()
+                .Single(entry => entry.Card.Id == "neutral_dandelion")
+                .Card.HasAbility(CardAbility.MoraleBoost));
         }
 
         [Test]
