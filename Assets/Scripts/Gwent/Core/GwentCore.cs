@@ -179,8 +179,11 @@ namespace Gwent.Core
 
         private readonly DeterministicRandom _random;
         private readonly Dictionary<PlayerId, PlayerState> _players;
+        private readonly HashSet<PlayerId> _cancelledLeaders = new HashSet<PlayerId>();
         private readonly HashSet<WeatherEffect> _weather = new HashSet<WeatherEffect>();
         private bool _medicsDisabled;
+        private bool _medicTargetsRandomized;
+        private bool _spyStrengthsDoubled;
 
         public GwentMatch(Faction playerFaction, Faction opponentFaction, DeterministicRandom random)
         {
@@ -290,6 +293,26 @@ namespace Gwent.Core
         public void DisableMedics()
         {
             _medicsDisabled = true;
+        }
+
+        public void RandomizeMedicRestores()
+        {
+            _medicTargetsRandomized = true;
+        }
+
+        public void DoubleSpyStrengths()
+        {
+            _spyStrengthsDoubled = true;
+        }
+
+        public void CancelLeader(PlayerId player)
+        {
+            _cancelledLeaders.Add(player);
+        }
+
+        public bool IsLeaderCancelled(PlayerId player)
+        {
+            return _cancelledLeaders.Contains(player);
         }
 
         public void MoveAgileCardsToBestRows(PlayerId player)
@@ -475,19 +498,23 @@ namespace Gwent.Core
                 throw new InvalidOperationException("Medic abilities are disabled.");
             }
 
-            if (!IsMedicTarget(restored))
+            var state = State(player);
+            var actualRestored = _medicTargetsRandomized
+                ? SelectRandomMedicTarget(state.Discard)
+                : restored;
+
+            if (!IsMedicTarget(actualRestored))
             {
                 throw new InvalidOperationException("Medic can only restore non-hero unit cards.");
             }
 
-            var state = State(player);
-            if (!state.Discard.Remove(restored))
+            if (!state.Discard.Remove(actualRestored))
             {
                 throw new InvalidOperationException("Medic target must be in the player's discard pile.");
             }
 
             PlayUnit(player, medic, medic.Row);
-            PlayUnit(player, restored, restored.Row);
+            PlayUnit(player, actualRestored, actualRestored.Row);
         }
 
         public void PlayDecoy(PlayerId player, CardDefinition decoy, CardDefinition target)
@@ -533,6 +560,36 @@ namespace Gwent.Core
             }
 
             _weather.Add(effect);
+        }
+
+        public bool PlayWeatherFromDeck(PlayerId player, WeatherEffect effect)
+        {
+            var deck = State(player).Deck;
+            for (var i = 0; i < deck.Count; i++)
+            {
+                var card = deck[i];
+                if (card.Kind != CardKind.Weather || GetWeatherEffect(card) != effect)
+                {
+                    continue;
+                }
+
+                deck.RemoveAt(i);
+                ApplyWeather(effect);
+                State(player).Discard.Add(card);
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool PlayAnyWeatherFromDeck(PlayerId player)
+        {
+            if (TryPlayAnyWeatherFromDeck(player, includeClearWeather: false))
+            {
+                return true;
+            }
+
+            return TryPlayAnyWeatherFromDeck(player, includeClearWeather: true);
         }
 
         public void ApplyHorn(PlayerId player, CombatRow row)
@@ -777,6 +834,17 @@ namespace Gwent.Core
             return card.Kind == CardKind.Unit && !card.HasAbility(CardAbility.Hero);
         }
 
+        private CardDefinition SelectRandomMedicTarget(IReadOnlyList<CardDefinition> discard)
+        {
+            var eligible = discard.Where(IsMedicTarget).ToList();
+            if (eligible.Count == 0)
+            {
+                throw new InvalidOperationException("Medic target must be in the player's discard pile.");
+            }
+
+            return eligible[_random.Range(0, eligible.Count)];
+        }
+
         private void PlayCard(PlayerId player, CardDefinition card, CombatRow? row, CardDefinition target)
         {
             switch (card.Kind)
@@ -878,6 +946,32 @@ namespace Gwent.Core
             throw new InvalidOperationException("Unknown weather card.");
         }
 
+        private bool TryPlayAnyWeatherFromDeck(PlayerId player, bool includeClearWeather)
+        {
+            var deck = State(player).Deck;
+            for (var i = 0; i < deck.Count; i++)
+            {
+                var card = deck[i];
+                if (card.Kind != CardKind.Weather)
+                {
+                    continue;
+                }
+
+                var effect = GetWeatherEffect(card);
+                if (!includeClearWeather && effect == WeatherEffect.ClearWeather)
+                {
+                    continue;
+                }
+
+                deck.RemoveAt(i);
+                ApplyWeather(effect);
+                State(player).Discard.Add(card);
+                return true;
+            }
+
+            return false;
+        }
+
         private void PlayMusterMatches(PlayerId player, CardDefinition source)
         {
             var state = State(player);
@@ -934,6 +1028,11 @@ namespace Gwent.Core
                 score *= rowCards.Count(other => !other.HasAbility(CardAbility.Hero)
                                                  && other.HasAbility(CardAbility.TightBond)
                                                  && other.Id == card.Id);
+            }
+
+            if (_spyStrengthsDoubled && card.HasAbility(CardAbility.Spy))
+            {
+                score *= 2;
             }
 
             if (State(player).HornRows.Contains(row) || HasUnitHornForCard(rowCards, card))

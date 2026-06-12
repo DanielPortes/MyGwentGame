@@ -156,7 +156,7 @@ namespace Gwent.Tests
             var hornMatch = TestMatch(Faction.Monsters, Faction.Nilfgaard);
             hornMatch.PlayUnit(PlayerId.Player, Unit("nekker", CombatRow.Close, 2));
 
-            Leader(Faction.Monsters, "monsters_eredin_breacc_glas_the_treacherous").ApplyTo(hornMatch, PlayerId.Player);
+            Leader(Faction.Monsters, "monsters_eredin_commander_of_the_red_riders").ApplyTo(hornMatch, PlayerId.Player);
 
             Assert.AreEqual(4, hornMatch.GetRowScore(PlayerId.Player, CombatRow.Close));
 
@@ -188,16 +188,79 @@ namespace Gwent.Tests
         }
 
         [Test]
+        public void WhiteFlameCancelsOpponentLeaderAbility()
+        {
+            var match = TestMatch(Faction.Nilfgaard, Faction.NorthernRealms);
+            match.PlayUnit(PlayerId.Player, Unit("infantry", CombatRow.Close, 8));
+            match.ApplyWeather(WeatherEffect.BitingFrost);
+
+            Leader(Faction.Nilfgaard, "nilfgaard_emhyr_the_white_flame").ApplyTo(match, PlayerId.Player);
+            Leader(Faction.NorthernRealms, "northern_realms_foltest_lord_commander").ApplyTo(match, PlayerId.Opponent);
+
+            Assert.AreEqual(1, match.GetRowScore(PlayerId.Player, CombatRow.Close));
+        }
+
+        [Test]
+        public void LeaderDefinitionsUseOriginalNilfgaardMappings()
+        {
+            AssertLeader(Faction.Nilfgaard, "nilfgaard_emhyr_emperor_of_nilfgaard", "PeekOpponentHand");
+            AssertLeader(Faction.Nilfgaard, "nilfgaard_emhyr_his_imperial_majesty", "ApplyWeather", weatherEffect: WeatherEffect.TorrentialRain);
+            AssertLeader(Faction.Nilfgaard, "nilfgaard_emhyr_invader_of_the_north", "RandomizeMedicRestores");
+            AssertLeader(Faction.Nilfgaard, "nilfgaard_emhyr_the_relentless", "DrawFromOpponentDiscard");
+            AssertLeader(Faction.Nilfgaard, "nilfgaard_emhyr_the_white_flame", "CancelOpponentLeader");
+        }
+
+        [Test]
+        public void LeaderDefinitionsUseOriginalMonsterMappings()
+        {
+            AssertLeader(Faction.Monsters, "monsters_eredin_breacc_glas_the_treacherous", "DoubleSpyStrengths");
+            AssertLeader(Faction.Monsters, "monsters_eredin_bringer_of_death", "RestoreFromOwnDiscard");
+            AssertLeader(Faction.Monsters, "monsters_eredin_commander_of_the_red_riders", "ApplyHorn", CombatRow.Close);
+            AssertLeader(Faction.Monsters, "monsters_eredin_destroyer_of_worlds", "DiscardTwoDrawOne");
+            AssertLeader(Faction.Monsters, "monsters_eredin_king_of_the_wild_hunt", "ApplyAnyWeather");
+        }
+
+        [Test]
+        public void TreacherousDoublesSpyStrengthForBothPlayers()
+        {
+            var match = TestMatch(Faction.Monsters, Faction.Nilfgaard);
+            match.PlayUnit(PlayerId.Player, Unit("player_spy", CombatRow.Siege, 4, CardAbility.Spy));
+            match.PlayUnit(PlayerId.Opponent, Unit("opponent_spy", CombatRow.Ranged, 3, CardAbility.Spy));
+
+            Leader(Faction.Monsters, "monsters_eredin_breacc_glas_the_treacherous").ApplyTo(match, PlayerId.Player);
+
+            Assert.AreEqual(8, match.GetRowScore(PlayerId.Player, CombatRow.Siege));
+            Assert.AreEqual(6, match.GetRowScore(PlayerId.Opponent, CombatRow.Ranged));
+        }
+
+        [Test]
+        public void KingOfTheWildHuntPlaysWeatherFromDeck()
+        {
+            var match = TestMatch(Faction.Monsters, Faction.Nilfgaard);
+            match.SetDeck(PlayerId.Player, Weather("neutral_impenetrable_fog"));
+            match.PlayUnit(PlayerId.Opponent, Unit("archer", CombatRow.Ranged, 8));
+
+            Leader(Faction.Monsters, "monsters_eredin_king_of_the_wild_hunt").ApplyTo(match, PlayerId.Player);
+
+            Assert.AreEqual(1, match.GetRowScore(PlayerId.Opponent, CombatRow.Ranged));
+            Assert.IsEmpty(match.GetDeck(PlayerId.Player));
+            Assert.AreEqual(new[] { "neutral_impenetrable_fog" }, match.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
+        }
+
+        [Test]
         public void LeaderDefinitionsApplyDiscardAndMedicEffects()
         {
-            var medicLockMatch = TestMatch(Faction.Nilfgaard, Faction.NorthernRealms);
+            var medicRandomMatch = TestMatch(Faction.Nilfgaard, Faction.NorthernRealms);
             var medic = new CardDefinition("medic", "Medic", Faction.Neutral, CardKind.Unit, CombatRow.Ranged, 5, CardAbility.Medic);
-            var restored = Unit("restored", CombatRow.Close, 4);
-            medicLockMatch.SetDiscard(PlayerId.Player, restored);
+            var randomTarget = Unit("random_target", CombatRow.Close, 4);
+            var requestedTarget = Unit("requested_target", CombatRow.Close, 6);
+            medicRandomMatch.SetDiscard(PlayerId.Player, randomTarget, requestedTarget);
 
-            Leader(Faction.Nilfgaard, "nilfgaard_emhyr_invader_of_the_north").ApplyTo(medicLockMatch, PlayerId.Player);
+            Leader(Faction.Nilfgaard, "nilfgaard_emhyr_invader_of_the_north").ApplyTo(medicRandomMatch, PlayerId.Player);
+            medicRandomMatch.PlayMedic(PlayerId.Player, medic, requestedTarget);
 
-            Assert.Throws<System.InvalidOperationException>(() => medicLockMatch.PlayMedic(PlayerId.Player, medic, restored));
+            Assert.AreEqual(new[] { "random_target" }, medicRandomMatch.GetRowCards(PlayerId.Player, CombatRow.Close).Select(card => card.Id).ToArray());
+            Assert.AreEqual(new[] { "requested_target" }, medicRandomMatch.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
 
             var relentlessMatch = TestMatch(Faction.Nilfgaard, Faction.NorthernRealms);
             relentlessMatch.SetDiscard(PlayerId.Opponent, Unit("opponent_discard", CombatRow.Close, 4));
@@ -207,21 +270,21 @@ namespace Gwent.Tests
             Assert.AreEqual(new[] { "opponent_discard" }, relentlessMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
             Assert.IsEmpty(relentlessMatch.GetDiscard(PlayerId.Opponent));
 
-            var destroyerMatch = TestMatch(Faction.Monsters, Faction.Nilfgaard);
-            destroyerMatch.SetDiscard(PlayerId.Player, Unit("own_discard", CombatRow.Close, 4));
-
-            Leader(Faction.Monsters, "monsters_eredin_destroyer_of_worlds").ApplyTo(destroyerMatch, PlayerId.Player);
-
-            Assert.AreEqual(new[] { "own_discard" }, destroyerMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
-
             var bringerMatch = TestMatch(Faction.Monsters, Faction.Nilfgaard);
-            bringerMatch.SetHand(PlayerId.Player, Unit("discard1", CombatRow.Close, 1), Unit("discard2", CombatRow.Close, 1));
-            bringerMatch.SetDeck(PlayerId.Player, Unit("drawn", CombatRow.Ranged, 1));
+            bringerMatch.SetDiscard(PlayerId.Player, Unit("own_discard", CombatRow.Close, 4));
 
             Leader(Faction.Monsters, "monsters_eredin_bringer_of_death").ApplyTo(bringerMatch, PlayerId.Player);
 
-            Assert.AreEqual(new[] { "drawn" }, bringerMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
-            Assert.AreEqual(new[] { "discard1", "discard2" }, bringerMatch.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
+            Assert.AreEqual(new[] { "own_discard" }, bringerMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
+
+            var destroyerMatch = TestMatch(Faction.Monsters, Faction.Nilfgaard);
+            destroyerMatch.SetHand(PlayerId.Player, Unit("discard1", CombatRow.Close, 1), Unit("discard2", CombatRow.Close, 1));
+            destroyerMatch.SetDeck(PlayerId.Player, Unit("drawn", CombatRow.Ranged, 1));
+
+            Leader(Faction.Monsters, "monsters_eredin_destroyer_of_worlds").ApplyTo(destroyerMatch, PlayerId.Player);
+
+            Assert.AreEqual(new[] { "drawn" }, destroyerMatch.GetHand(PlayerId.Player).Select(card => card.Id).ToArray());
+            Assert.AreEqual(new[] { "discard1", "discard2" }, destroyerMatch.GetDiscard(PlayerId.Player).Select(card => card.Id).ToArray());
         }
 
         private static void AssertCard(
@@ -240,6 +303,20 @@ namespace Gwent.Tests
             Assert.AreEqual(copies, entry.Copies);
         }
 
+        private static void AssertLeader(
+            Faction faction,
+            string id,
+            string ability,
+            CombatRow? row = null,
+            WeatherEffect? weatherEffect = null)
+        {
+            var leader = Leader(faction, id);
+
+            Assert.AreEqual(ability, leader.Ability.ToString(), id);
+            Assert.AreEqual(row, leader.TargetRow, id);
+            Assert.AreEqual(weatherEffect, leader.WeatherEffect, id);
+        }
+
         private static bool IsSpecialOrWeather(CardDefinition card)
         {
             return card.Kind == CardKind.Special || card.Kind == CardKind.Weather;
@@ -250,9 +327,14 @@ namespace Gwent.Tests
             return new GwentMatch(playerFaction, opponentFaction, new DeterministicRandom());
         }
 
-        private static CardDefinition Unit(string id, CombatRow row, int strength)
+        private static CardDefinition Unit(string id, CombatRow row, int strength, params CardAbility[] abilities)
         {
-            return new CardDefinition(id, id, Faction.Neutral, CardKind.Unit, row, strength);
+            return new CardDefinition(id, id, Faction.Neutral, CardKind.Unit, row, strength, abilities);
+        }
+
+        private static CardDefinition Weather(string id)
+        {
+            return new CardDefinition(id, id, Faction.Neutral, CardKind.Weather, CombatRow.Close, 0);
         }
 
         private static GwentLeaderDefinition Leader(Faction faction, string id)

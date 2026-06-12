@@ -16,10 +16,13 @@ namespace Gwent.Data
         DrawCard,
         PeekOpponentHand,
         DisableMedics,
+        RandomizeMedicRestores,
         DrawFromOpponentDiscard,
         RestoreFromOwnDiscard,
         DiscardTwoDrawOne,
         MoveAgileToBestRow,
+        DoubleSpyStrengths,
+        ApplyAnyWeather,
         CancelOpponentLeader
     }
 
@@ -74,6 +77,11 @@ namespace Gwent.Data
                 throw new ArgumentNullException(nameof(match));
             }
 
+            if (match.IsLeaderCancelled(owner))
+            {
+                return;
+            }
+
             switch (Ability)
             {
                 case GwentLeaderAbility.ClearWeather:
@@ -83,7 +91,10 @@ namespace Gwent.Data
                     match.ApplyHorn(owner, RequireTargetRow());
                     return;
                 case GwentLeaderAbility.ApplyWeather:
-                    match.ApplyWeather(RequireWeatherEffect());
+                    match.PlayWeatherFromDeck(owner, RequireWeatherEffect());
+                    return;
+                case GwentLeaderAbility.ApplyAnyWeather:
+                    match.PlayAnyWeatherFromDeck(owner);
                     return;
                 case GwentLeaderAbility.ScorchRow:
                     match.PlayRowScorch(OpponentOf(owner), RequireTargetRow());
@@ -93,6 +104,9 @@ namespace Gwent.Data
                     return;
                 case GwentLeaderAbility.DisableMedics:
                     match.DisableMedics();
+                    return;
+                case GwentLeaderAbility.RandomizeMedicRestores:
+                    match.RandomizeMedicRestores();
                     return;
                 case GwentLeaderAbility.DrawFromOpponentDiscard:
                     match.MoveTopDiscardToHand(OpponentOf(owner), owner);
@@ -107,8 +121,13 @@ namespace Gwent.Data
                 case GwentLeaderAbility.MoveAgileToBestRow:
                     match.MoveAgileCardsToBestRows(owner);
                     return;
+                case GwentLeaderAbility.DoubleSpyStrengths:
+                    match.DoubleSpyStrengths();
+                    return;
                 case GwentLeaderAbility.PeekOpponentHand:
+                    return;
                 case GwentLeaderAbility.CancelOpponentLeader:
+                    match.CancelLeader(OpponentOf(owner));
                     return;
                 case GwentLeaderAbility.None:
                     return;
@@ -235,9 +254,9 @@ namespace Gwent.Data
             Faction.Nilfgaard,
             new[]
             {
-                Leader("nilfgaard_emhyr_emperor_of_nilfgaard", "Emhyr: Emperor of Nilfgaard", Faction.Nilfgaard, "Pick a Torrential Rain card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.TorrentialRain),
-                Leader("nilfgaard_emhyr_his_imperial_majesty", "Emhyr: His Imperial Majesty", Faction.Nilfgaard, "Look at three random cards in your opponent's hand.", GwentLeaderAbility.PeekOpponentHand),
-                Leader("nilfgaard_emhyr_invader_of_the_north", "Emhyr: Invader of the North", Faction.Nilfgaard, "Abilities that restore cards from the discard pile are disabled.", GwentLeaderAbility.DisableMedics),
+                Leader("nilfgaard_emhyr_emperor_of_nilfgaard", "Emhyr: Emperor of Nilfgaard", Faction.Nilfgaard, "Look at three random cards from your opponent's hand.", GwentLeaderAbility.PeekOpponentHand),
+                Leader("nilfgaard_emhyr_his_imperial_majesty", "Emhyr: His Imperial Majesty", Faction.Nilfgaard, "Pick a Torrential Rain card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.TorrentialRain),
+                Leader("nilfgaard_emhyr_invader_of_the_north", "Emhyr: Invader of the North", Faction.Nilfgaard, "Abilities that restore a unit to the battlefield restore a randomly chosen unit. Affects both players.", GwentLeaderAbility.RandomizeMedicRestores),
                 Leader("nilfgaard_emhyr_the_relentless", "Emhyr: The Relentless", Faction.Nilfgaard, "Draw a card from your opponent's discard pile.", GwentLeaderAbility.DrawFromOpponentDiscard),
                 Leader("nilfgaard_emhyr_the_white_flame", "Emhyr: The White Flame", Faction.Nilfgaard, "Cancel your opponent's leader ability.", GwentLeaderAbility.CancelOpponentLeader)
             },
@@ -278,11 +297,11 @@ namespace Gwent.Data
             Faction.Monsters,
             new[]
             {
-                Leader("monsters_eredin_breacc_glas_the_treacherous", "Eredin Breacc Glas: The Treacherous", Faction.Monsters, "Double the strength of all Close Combat units unless a Commander's Horn is already present.", GwentLeaderAbility.ApplyHorn, CombatRow.Close),
-                Leader("monsters_eredin_bringer_of_death", "Eredin: Bringer of Death", Faction.Monsters, "Discard two cards and draw one card of your choice from your deck.", GwentLeaderAbility.DiscardTwoDrawOne),
-                Leader("monsters_eredin_commander_of_the_red_riders", "Eredin: Commander of the Red Riders", Faction.Monsters, "Pick any weather card from your deck and play it instantly.", GwentLeaderAbility.ApplyWeather, weatherEffect: WeatherEffect.BitingFrost),
-                Leader("monsters_eredin_destroyer_of_worlds", "Eredin: Destroyer of Worlds", Faction.Monsters, "Restore one card from your discard pile to your hand.", GwentLeaderAbility.RestoreFromOwnDiscard),
-                Leader("monsters_eredin_king_of_the_wild_hunt", "Eredin: King of the Wild Hunt", Faction.Monsters, "Cancel your opponent's leader ability.", GwentLeaderAbility.CancelOpponentLeader)
+                Leader("monsters_eredin_breacc_glas_the_treacherous", "Eredin Breacc Glas: The Treacherous", Faction.Monsters, "Double the strength of all spy cards. Affects both players.", GwentLeaderAbility.DoubleSpyStrengths),
+                Leader("monsters_eredin_bringer_of_death", "Eredin: Bringer of Death", Faction.Monsters, "Restore one card from your discard pile to your hand.", GwentLeaderAbility.RestoreFromOwnDiscard),
+                Leader("monsters_eredin_commander_of_the_red_riders", "Eredin: Commander of the Red Riders", Faction.Monsters, "Double the strength of all your Close Combat units unless a Commander's Horn is already present.", GwentLeaderAbility.ApplyHorn, CombatRow.Close),
+                Leader("monsters_eredin_destroyer_of_worlds", "Eredin: Destroyer of Worlds", Faction.Monsters, "Discard two cards and draw one card of your choice from your deck.", GwentLeaderAbility.DiscardTwoDrawOne),
+                Leader("monsters_eredin_king_of_the_wild_hunt", "Eredin: King of the Wild Hunt", Faction.Monsters, "Pick any weather card from your deck and play it instantly.", GwentLeaderAbility.ApplyAnyWeather)
             },
             new[]
             {
