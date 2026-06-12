@@ -30,11 +30,11 @@
 - Modify: `Assets/Scripts/Gwent/Core/GwentCore.cs`
 - Modify: `Assets/Tests/EditMode/Gwent/GwentCoreTests.cs`
 
-- [ ] Add failing tests for draw, mulligan, turn alternation, pass, round end, Spy, Medic, Muster, Agile, Decoy, and faction bonuses.
-- [ ] Run EditMode tests and confirm the new tests fail for missing behavior.
-- [ ] Implement match state transitions and card abilities.
-- [ ] Run EditMode tests and confirm all pass.
-- [ ] Commit with message `feat: implement witcher 3 gwent match flow`.
+- [x] Add failing tests for draw, mulligan, turn alternation, pass, round end, Spy, Medic, Muster, Agile, Decoy, and faction bonuses.
+- [x] Run EditMode tests and confirm the new tests fail for missing behavior.
+- [x] Implement match state transitions and card abilities.
+- [x] Run EditMode tests and confirm all pass.
+- [x] Commit with message `feat: implement witcher 3 gwent match flow`.
 
 ### Task 3: Card Catalog
 

@@ -44,7 +44,8 @@ namespace Gwent.Core
         Spy = 1 << 3,
         Medic = 1 << 4,
         Muster = 1 << 5,
-        Agile = 1 << 6
+        Agile = 1 << 6,
+        Decoy = 1 << 7
     }
 
     public enum WeatherEffect
@@ -136,6 +137,8 @@ namespace Gwent.Core
 
     public sealed class GwentMatch
     {
+        private const int OpeningHandSize = 10;
+
         private readonly DeterministicRandom _random;
         private readonly Dictionary<PlayerId, PlayerState> _players;
         private readonly HashSet<WeatherEffect> _weather = new HashSet<WeatherEffect>();
@@ -148,6 +151,29 @@ namespace Gwent.Core
                 { PlayerId.Player, new PlayerState(playerFaction) },
                 { PlayerId.Opponent, new PlayerState(opponentFaction) }
             };
+        }
+
+        public PlayerId CurrentTurn { get; private set; } = PlayerId.Player;
+
+        public bool IsMatchComplete { get; private set; }
+
+        public PlayerId? MatchWinner { get; private set; }
+
+        public void StartMatch(PlayerId startingPlayer)
+        {
+            Draw(PlayerId.Player, OpeningHandSize);
+            Draw(PlayerId.Opponent, OpeningHandSize);
+            CurrentTurn = startingPlayer;
+        }
+
+        public void ChooseStartingPlayer(PlayerId chooser, PlayerId startingPlayer)
+        {
+            if (State(chooser).Faction != Faction.Scoiatael)
+            {
+                throw new InvalidOperationException("Only Scoia'tael can choose who starts the match.");
+            }
+
+            CurrentTurn = startingPlayer;
         }
 
         public void SetDeck(PlayerId player, params CardDefinition[] cards)
@@ -164,6 +190,13 @@ namespace Gwent.Core
             state.Hand.AddRange(cards ?? Array.Empty<CardDefinition>());
         }
 
+        public void SetDiscard(PlayerId player, params CardDefinition[] cards)
+        {
+            var state = State(player);
+            state.Discard.Clear();
+            state.Discard.AddRange(cards ?? Array.Empty<CardDefinition>());
+        }
+
         public IReadOnlyList<CardDefinition> GetDeck(PlayerId player)
         {
             return State(player).Deck.AsReadOnly();
@@ -174,6 +207,11 @@ namespace Gwent.Core
             return State(player).Hand.AsReadOnly();
         }
 
+        public IReadOnlyList<CardDefinition> GetDiscard(PlayerId player)
+        {
+            return State(player).Discard.AsReadOnly();
+        }
+
         public IEnumerable<CardDefinition> GetBoardCards(PlayerId player)
         {
             return State(player).Rows.Values.SelectMany(row => row);
@@ -182,6 +220,38 @@ namespace Gwent.Core
         public int GetRoundWins(PlayerId player)
         {
             return State(player).RoundWins;
+        }
+
+        public int GetRoundLosses(PlayerId player)
+        {
+            return State(player).RoundLosses;
+        }
+
+        public CardDefinition Mulligan(PlayerId player, int handIndex)
+        {
+            var state = State(player);
+            if (state.MulligansUsed >= 2)
+            {
+                throw new InvalidOperationException("Each player can mulligan at most two cards.");
+            }
+
+            if (handIndex < 0 || handIndex >= state.Hand.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(handIndex));
+            }
+
+            if (state.Deck.Count == 0)
+            {
+                throw new InvalidOperationException("Cannot mulligan without cards in the deck.");
+            }
+
+            var removed = state.Hand[handIndex];
+            var replacement = state.Deck[0];
+            state.Deck.RemoveAt(0);
+            state.Hand[handIndex] = replacement;
+            state.Deck.Add(removed);
+            state.MulligansUsed++;
+            return replacement;
         }
 
         public void PlayUnit(PlayerId player, CardDefinition card, CombatRow? row = null)
@@ -197,9 +267,16 @@ namespace Gwent.Core
             }
 
             var selectedRow = row ?? card.Row;
-            if (card.HasAbility(CardAbility.Agile) && selectedRow == CombatRow.Siege)
+            if (card.HasAbility(CardAbility.Agile))
             {
-                throw new InvalidOperationException("Agile cards can only be placed on Close or Ranged rows.");
+                if (selectedRow == CombatRow.Siege)
+                {
+                    throw new InvalidOperationException("Agile cards can only be placed on Close or Ranged rows.");
+                }
+            }
+            else if (selectedRow != card.Row)
+            {
+                throw new InvalidOperationException("Non-agile cards must be placed on their printed row.");
             }
 
             State(player).Rows[selectedRow].Add(card);
@@ -207,6 +284,8 @@ namespace Gwent.Core
 
         public void PlayFromHand(PlayerId player, int handIndex, CombatRow row)
         {
+            EnsureCanAct(player);
+
             var state = State(player);
             if (handIndex < 0 || handIndex >= state.Hand.Count)
             {
@@ -221,6 +300,8 @@ namespace Gwent.Core
             {
                 PlayMusterMatches(player, card, row);
             }
+
+            AdvanceTurnAfterAction(player);
         }
 
         public void PlaySpy(PlayerId owner, CardDefinition spy)
@@ -237,6 +318,72 @@ namespace Gwent.Core
 
             PlayUnit(OpponentOf(owner), spy, spy.Row);
             Draw(owner, 2);
+        }
+
+        public void PlayMedic(PlayerId player, CardDefinition medic, CardDefinition restored)
+        {
+            if (medic == null)
+            {
+                throw new ArgumentNullException(nameof(medic));
+            }
+
+            if (restored == null)
+            {
+                throw new ArgumentNullException(nameof(restored));
+            }
+
+            if (!medic.HasAbility(CardAbility.Medic))
+            {
+                throw new InvalidOperationException("Only medic cards can restore units from discard.");
+            }
+
+            if (!IsMedicTarget(restored))
+            {
+                throw new InvalidOperationException("Medic can only restore non-hero unit cards.");
+            }
+
+            var state = State(player);
+            if (!state.Discard.Remove(restored))
+            {
+                throw new InvalidOperationException("Medic target must be in the player's discard pile.");
+            }
+
+            PlayUnit(player, medic, medic.Row);
+            PlayUnit(player, restored, restored.Row);
+        }
+
+        public void PlayDecoy(PlayerId player, CardDefinition decoy, CardDefinition target)
+        {
+            if (decoy == null)
+            {
+                throw new ArgumentNullException(nameof(decoy));
+            }
+
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            if (decoy.Kind != CardKind.Special || !decoy.HasAbility(CardAbility.Decoy))
+            {
+                throw new InvalidOperationException("Only Decoy special cards can be played as decoys.");
+            }
+
+            if (target.HasAbility(CardAbility.Hero))
+            {
+                throw new InvalidOperationException("Decoy cannot target hero cards.");
+            }
+
+            var entry = FindBoardCard(player, target);
+            if (entry.Card == null)
+            {
+                throw new InvalidOperationException("Decoy target must be on the player's board.");
+            }
+
+            var state = State(player);
+            state.Rows[entry.Row].Remove(target);
+            state.Hand.Add(target);
+            state.Discard.Add(decoy);
         }
 
         public void ApplyWeather(WeatherEffect effect)
@@ -287,10 +434,19 @@ namespace Gwent.Core
 
         public void Pass(PlayerId player)
         {
+            EnsureCanAct(player);
+
             State(player).Passed = true;
             if (State(PlayerId.Player).Passed && State(PlayerId.Opponent).Passed)
             {
                 ResolveRound();
+                return;
+            }
+
+            var opponent = OpponentOf(player);
+            if (!State(opponent).Passed)
+            {
+                CurrentTurn = opponent;
             }
         }
 
@@ -299,17 +455,21 @@ namespace Gwent.Core
             var playerScore = GetTotalScore(PlayerId.Player);
             var opponentScore = GetTotalScore(PlayerId.Opponent);
 
+            PlayerId? winner = null;
+
             if (playerScore > opponentScore)
             {
-                AwardRound(PlayerId.Player);
+                winner = PlayerId.Player;
+                AwardRound(PlayerId.Player, PlayerId.Opponent);
             }
             else if (opponentScore > playerScore)
             {
-                AwardRound(PlayerId.Opponent);
+                winner = PlayerId.Opponent;
+                AwardRound(PlayerId.Opponent, PlayerId.Player);
             }
             else
             {
-                ResolveDrawnRound();
+                winner = ResolveDrawnRound();
             }
 
             ClearBoardForNextRound();
@@ -321,32 +481,44 @@ namespace Gwent.Core
             }
 
             _weather.Clear();
+            CurrentTurn = winner.HasValue ? OpponentOf(winner.Value) : PlayerId.Player;
         }
 
-        private void ResolveDrawnRound()
+        private PlayerId? ResolveDrawnRound()
         {
             var playerIsNilfgaard = State(PlayerId.Player).Faction == Faction.Nilfgaard;
             var opponentIsNilfgaard = State(PlayerId.Opponent).Faction == Faction.Nilfgaard;
 
             if (playerIsNilfgaard && !opponentIsNilfgaard)
             {
-                AwardRound(PlayerId.Player);
+                AwardRound(PlayerId.Player, PlayerId.Opponent);
+                return PlayerId.Player;
             }
-            else if (opponentIsNilfgaard && !playerIsNilfgaard)
+
+            if (opponentIsNilfgaard && !playerIsNilfgaard)
             {
-                AwardRound(PlayerId.Opponent);
+                AwardRound(PlayerId.Opponent, PlayerId.Player);
+                return PlayerId.Opponent;
             }
+
+            State(PlayerId.Player).RoundLosses++;
+            State(PlayerId.Opponent).RoundLosses++;
+            CheckMatchCompletion();
+            return null;
         }
 
-        private void AwardRound(PlayerId winner)
+        private void AwardRound(PlayerId winner, PlayerId loser)
         {
             var state = State(winner);
             state.RoundWins++;
+            State(loser).RoundLosses++;
 
             if (state.Faction == Faction.NorthernRealms)
             {
                 Draw(winner, 1);
             }
+
+            CheckMatchCompletion();
         }
 
         private void ClearBoardForNextRound()
@@ -410,6 +582,35 @@ namespace Gwent.Core
                 state.Deck.RemoveAt(0);
                 state.Hand.Add(card);
             }
+        }
+
+        private void EnsureCanAct(PlayerId player)
+        {
+            if (IsMatchComplete)
+            {
+                throw new InvalidOperationException("Cannot act after the match is complete.");
+            }
+
+            if (State(player).Passed)
+            {
+                throw new InvalidOperationException("A player who has passed cannot act again this round.");
+            }
+
+            if (CurrentTurn != player)
+            {
+                throw new InvalidOperationException("It is not this player's turn.");
+            }
+        }
+
+        private void AdvanceTurnAfterAction(PlayerId player)
+        {
+            var opponent = OpponentOf(player);
+            CurrentTurn = State(opponent).Passed ? player : opponent;
+        }
+
+        private static bool IsMedicTarget(CardDefinition card)
+        {
+            return card.Kind == CardKind.Unit && !card.HasAbility(CardAbility.Hero);
         }
 
         private void PlayMusterMatches(PlayerId player, CardDefinition source, CombatRow row)
@@ -506,6 +707,53 @@ namespace Gwent.Core
             }
         }
 
+        private BoardEntry FindBoardCard(PlayerId player, CardDefinition target)
+        {
+            foreach (var row in EnumValues<CombatRow>())
+            {
+                foreach (var card in State(player).Rows[row])
+                {
+                    if (ReferenceEquals(card, target))
+                    {
+                        return new BoardEntry(player, row, card);
+                    }
+                }
+            }
+
+            return BoardEntry.Empty;
+        }
+
+        private void CheckMatchCompletion()
+        {
+            foreach (var player in EnumValues<PlayerId>())
+            {
+                if (State(player).RoundWins >= 2)
+                {
+                    IsMatchComplete = true;
+                    MatchWinner = player;
+                    return;
+                }
+            }
+
+            var playerLost = State(PlayerId.Player).RoundLosses >= 2;
+            var opponentLost = State(PlayerId.Opponent).RoundLosses >= 2;
+            if (playerLost && opponentLost)
+            {
+                IsMatchComplete = true;
+                MatchWinner = null;
+            }
+            else if (playerLost)
+            {
+                IsMatchComplete = true;
+                MatchWinner = PlayerId.Opponent;
+            }
+            else if (opponentLost)
+            {
+                IsMatchComplete = true;
+                MatchWinner = PlayerId.Player;
+            }
+        }
+
         private PlayerState State(PlayerId player)
         {
             return _players[player];
@@ -548,6 +796,10 @@ namespace Gwent.Core
             public bool Passed { get; set; }
 
             public int RoundWins { get; set; }
+
+            public int RoundLosses { get; set; }
+
+            public int MulligansUsed { get; set; }
         }
 
         private readonly struct BoardEntry
