@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Gwent.Core;
+using Gwent.Data;
 using NUnit.Framework;
 
 namespace Gwent.Tests
@@ -124,6 +125,39 @@ namespace Gwent.Tests
             Assert.AreEqual(18, match.GetRowScore(PlayerId.Player, CombatRow.Close));
             Assert.IsEmpty(match.GetHand(PlayerId.Player));
             Assert.IsEmpty(match.GetDeck(PlayerId.Player));
+        }
+
+        [Test]
+        public void ArachasBehemothMusterPlaysRegularArachasOnTheirPrintedCloseRow()
+        {
+            var match = TestMatch(Faction.Monsters, Faction.NorthernRealms);
+            var behemoth = CatalogCard(Faction.Monsters, "monsters_arachas_behemoth");
+            var arachas = CatalogCard(Faction.Monsters, "monsters_arachas");
+            match.SetHand(PlayerId.Player, behemoth);
+            match.SetDeck(PlayerId.Player, arachas, arachas, arachas);
+
+            match.PlayCardFromHand(PlayerId.Player, 0, CombatRow.Siege);
+
+            Assert.AreEqual(new[] { "monsters_arachas_behemoth" }, match.GetRowCards(PlayerId.Player, CombatRow.Siege).Select(card => card.Id).ToArray());
+            Assert.AreEqual(6, match.GetRowScore(PlayerId.Player, CombatRow.Siege));
+            Assert.AreEqual(12, match.GetRowScore(PlayerId.Player, CombatRow.Close));
+            Assert.IsEmpty(match.GetDeck(PlayerId.Player));
+        }
+
+        [Test]
+        public void RegularArachasMusterDoesNotSummonArachasBehemoth()
+        {
+            var match = TestMatch(Faction.Monsters, Faction.NorthernRealms);
+            var arachas = CatalogCard(Faction.Monsters, "monsters_arachas");
+            var behemoth = CatalogCard(Faction.Monsters, "monsters_arachas_behemoth");
+            match.SetHand(PlayerId.Player, arachas);
+            match.SetDeck(PlayerId.Player, behemoth, arachas, arachas);
+
+            match.PlayCardFromHand(PlayerId.Player, 0, CombatRow.Close);
+
+            Assert.AreEqual(12, match.GetRowScore(PlayerId.Player, CombatRow.Close));
+            Assert.AreEqual(0, match.GetRowScore(PlayerId.Player, CombatRow.Siege));
+            Assert.AreEqual(new[] { "monsters_arachas_behemoth" }, match.GetDeck(PlayerId.Player).Select(card => card.Id).ToArray());
         }
 
         [Test]
@@ -439,6 +473,11 @@ namespace Gwent.Tests
         private static CardDefinition Special(string id, string name, params CardAbility[] abilities)
         {
             return new CardDefinition(id, name, Faction.Neutral, CardKind.Special, CombatRow.Close, 0, abilities);
+        }
+
+        private static CardDefinition CatalogCard(Faction faction, string id)
+        {
+            return GwentCatalog.GetDeck(faction).Cards.Single(entry => entry.Card.Id == id).Card;
         }
 
         private static CardDefinition[] Cards(string prefix, int count)

@@ -287,7 +287,7 @@ namespace Gwent.Data
             new[]
             {
                 Unit("monsters_arachas", "Arachas", Faction.Monsters, CombatRow.Close, 4, CardAbility.Muster, 3, "monsters_arachas"),
-                Unit("monsters_arachas_behemoth", "Arachas Behemoth", Faction.Monsters, CombatRow.Siege, 6, CardAbility.Muster, musterGroup: "monsters_arachas"),
+                Unit("monsters_arachas_behemoth", "Arachas Behemoth", Faction.Monsters, CombatRow.Siege, 6, CardAbility.Muster, musterGroup: "monsters_arachas_behemoth", musterSummonGroup: "monsters_arachas"),
                 Unit("monsters_botchling", "Botchling", Faction.Monsters, CombatRow.Close, 4),
                 Unit("monsters_celaeno_harpy", "Celaeno Harpy", Faction.Monsters, CombatRow.Close, 2, CardAbility.Agile),
                 Unit("monsters_cockatrice", "Cockatrice", Faction.Monsters, CombatRow.Ranged, 2),
@@ -467,10 +467,11 @@ namespace Gwent.Data
             int strength,
             CardAbility ability = CardAbility.None,
             int copies = 1,
-            string musterGroup = null)
+            string musterGroup = null,
+            string musterSummonGroup = null)
         {
             return new GwentCardCatalogEntry(
-                new CardDefinition(id, name, faction, CardKind.Unit, row, strength, musterGroup, ability),
+                new CardDefinition(id, name, faction, CardKind.Unit, row, strength, musterGroup, musterSummonGroup, ability),
                 copies,
                 true,
                 SourcePageFor(faction));

@@ -84,6 +84,20 @@ namespace Gwent.Core
             int strength,
             string musterGroup,
             params CardAbility[] abilities)
+            : this(id, name, faction, kind, row, strength, musterGroup, null, abilities)
+        {
+        }
+
+        public CardDefinition(
+            string id,
+            string name,
+            Faction faction,
+            CardKind kind,
+            CombatRow row,
+            int strength,
+            string musterGroup,
+            string musterSummonGroup,
+            params CardAbility[] abilities)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -102,6 +116,7 @@ namespace Gwent.Core
             Row = row;
             Strength = strength;
             MusterGroup = string.IsNullOrWhiteSpace(musterGroup) ? id : musterGroup;
+            MusterSummonGroup = string.IsNullOrWhiteSpace(musterSummonGroup) ? MusterGroup : musterSummonGroup;
             Abilities = MergeAbilities(abilities);
         }
 
@@ -118,6 +133,8 @@ namespace Gwent.Core
         public int Strength { get; }
 
         public string MusterGroup { get; }
+
+        public string MusterSummonGroup { get; }
 
         public CardAbility Abilities { get; }
 
@@ -386,7 +403,7 @@ namespace Gwent.Core
 
             if (card.HasAbility(CardAbility.Muster))
             {
-                PlayMusterMatches(player, card, row);
+                PlayMusterMatches(player, card);
             }
 
             ApplyRowScorchAbility(player, card);
@@ -798,7 +815,7 @@ namespace Gwent.Core
 
             if (card.HasAbility(CardAbility.Muster))
             {
-                PlayMusterMatches(player, card, selectedRow);
+                PlayMusterMatches(player, card);
             }
 
             ApplyRowScorchAbility(player, card);
@@ -861,11 +878,11 @@ namespace Gwent.Core
             throw new InvalidOperationException("Unknown weather card.");
         }
 
-        private void PlayMusterMatches(PlayerId player, CardDefinition source, CombatRow row)
+        private void PlayMusterMatches(PlayerId player, CardDefinition source)
         {
             var state = State(player);
-            PlayMatchingCardsFromPile(state.Hand, source.MusterGroup, card => PlayUnit(player, card, row));
-            PlayMatchingCardsFromPile(state.Deck, source.MusterGroup, card => PlayUnit(player, card, row));
+            PlayMatchingCardsFromPile(state.Hand, source.MusterSummonGroup, card => PlayUnit(player, card));
+            PlayMatchingCardsFromPile(state.Deck, source.MusterSummonGroup, card => PlayUnit(player, card));
         }
 
         private static void PlayMatchingCardsFromPile(List<CardDefinition> pile, string musterGroup, Action<CardDefinition> play)
