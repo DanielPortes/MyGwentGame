@@ -1,0 +1,24 @@
+* text=auto
+
+.gitattributes text eol=lf
+.gitignore text eol=lf
+
+*.asmdef text eol=lf
+*.asset text eol=lf
+*.controller text eol=lf
+*.cs text eol=lf
+*.json text eol=lf
+*.mat text eol=lf
+*.md text eol=lf
+*.meta text eol=lf
+*.prefab text eol=lf
+*.renderTexture text eol=lf
+*.shader text eol=lf
+*.txt text eol=lf
+*.unity text eol=lf
+
+*.gif binary
+*.jpg binary
+*.jpeg binary
+*.mp4 binary
+*.png binary
