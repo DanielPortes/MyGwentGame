@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using Gwent.Core;
+using Gwent.Data;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -24,11 +26,13 @@ namespace Gwent.UI
 
         public Image Background { get; private set; }
 
+        public Image ArtImage { get; private set; }
+
         public RectTransform RectTransform { get; private set; }
 
         public CanvasGroup CanvasGroup { get; private set; }
 
-        public void Configure(Text nameText, Text strengthText, Text rowText, Text abilityText, Button button, Image background)
+        public void Configure(Text nameText, Text strengthText, Text rowText, Text abilityText, Button button, Image background, Image artImage)
         {
             NameText = nameText;
             StrengthText = strengthText;
@@ -36,6 +40,7 @@ namespace Gwent.UI
             AbilityText = abilityText;
             Button = button;
             Background = background;
+            ArtImage = artImage;
             RectTransform = GetComponent<RectTransform>();
             CanvasGroup = GetComponent<CanvasGroup>();
             if (CanvasGroup == null)
@@ -55,6 +60,8 @@ namespace Gwent.UI
                 StrengthText.text = string.Empty;
                 RowText.text = string.Empty;
                 AbilityText.text = string.Empty;
+                ArtImage.sprite = null;
+                ArtImage.color = new Color(1f, 1f, 1f, 0f);
                 Background.color = new Color(0.10f, 0.13f, 0.18f, 1f);
                 return;
             }
@@ -64,6 +71,67 @@ namespace Gwent.UI
             RowText.text = FormatRow(card);
             AbilityText.text = FormatAbilities(card.Abilities);
             Background.color = ColorFor(card.Faction);
+            ApplyArt(card);
+        }
+
+        private void ApplyArt(CardDefinition card)
+        {
+            ArtImage.sprite = null;
+            ArtImage.color = new Color(1f, 1f, 1f, 0f);
+
+            if (!GwentAssetCatalog.TryGetCardArtPath(card.Id, out var relativePath))
+            {
+                return;
+            }
+
+            var sprite = LoadSprite(relativePath);
+            if (sprite == null)
+            {
+                return;
+            }
+
+            ArtImage.sprite = sprite;
+            ArtImage.preserveAspect = true;
+            ArtImage.color = Color.white;
+        }
+
+        private static Sprite LoadSprite(string relativePath)
+        {
+            var fullPath = ResolveAssetPath(relativePath);
+            if (fullPath == null)
+            {
+                return null;
+            }
+
+            var bytes = File.ReadAllBytes(fullPath);
+            var texture = new Texture2D(2, 2);
+            if (!texture.LoadImage(bytes))
+            {
+                return null;
+            }
+
+            return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+        }
+
+        private static string ResolveAssetPath(string relativePath)
+        {
+            var projectRoot = Directory.GetParent(Application.dataPath)?.FullName;
+            var candidates = new[]
+            {
+                Path.Combine(projectRoot ?? string.Empty, relativePath),
+                Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", relativePath)),
+                Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "..", relativePath))
+            };
+
+            foreach (var candidate in candidates)
+            {
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
         }
 
         public void SetEntranceOffset(Vector2 offset)

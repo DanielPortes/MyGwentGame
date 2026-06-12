@@ -97,3 +97,17 @@
 - [x] Commit with message `feat: close witcher 3 gwent rule gaps`.
 - [x] Implement functional leader abilities from the Witcher 3 decks.
 - [x] Commit with message `feat: add gwent leader abilities`.
+
+### Task 7: Local Card Art Mapping
+
+**Files:**
+- Modify: `Assets/Scripts/Gwent/Data/GwentAssetCatalog.cs`
+- Modify: `Assets/Scripts/Gwent/UI/GwentCardView.cs`
+- Modify: `Assets/Scripts/Gwent/UI/GwentViewFactory.cs`
+- Modify: `Assets/Tests/EditMode/Gwent/GwentCatalogTests.cs`
+
+- [x] Add failing tests for known local card art paths.
+- [x] Map available local card art for known Witcher 3 Gwent cards.
+- [x] Render mapped art in card views with text fallback for missing files.
+- [x] Run EditMode tests and Windows batchmode build.
+- [x] Commit with message `feat: map local gwent card art`.

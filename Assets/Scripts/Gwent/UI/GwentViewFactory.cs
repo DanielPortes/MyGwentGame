@@ -255,6 +255,11 @@ namespace Gwent.UI
             var strength = CreateText(string.Empty, root.transform, 26, TextAnchor.MiddleCenter, AccentGold);
             strength.gameObject.AddComponent<LayoutElement>().preferredHeight = 34;
 
+            var artObject = CreatePanel("Art", root.transform, new Color(1f, 1f, 1f, 0f));
+            var artImage = artObject.GetComponent<Image>();
+            artImage.raycastTarget = false;
+            artObject.gameObject.AddComponent<LayoutElement>().preferredHeight = 36;
+
             var row = CreateText(string.Empty, root.transform, 10, TextAnchor.MiddleCenter, Color.white);
             row.resizeTextForBestFit = true;
             row.resizeTextMinSize = 7;
@@ -268,7 +273,7 @@ namespace Gwent.UI
             ability.gameObject.AddComponent<LayoutElement>().preferredHeight = 26;
 
             var view = root.AddComponent<GwentCardView>();
-            view.Configure(name, strength, row, ability, button, image);
+            view.Configure(name, strength, row, ability, button, image, artImage);
             view.Bind(card, faceUp);
             return view;
         }

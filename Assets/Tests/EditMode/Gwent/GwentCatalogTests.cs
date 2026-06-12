@@ -89,6 +89,20 @@ namespace Gwent.Tests
         }
 
         [Test]
+        public void AssetCatalogMapsKnownLocalCardArt()
+        {
+            Assert.IsTrue(GwentAssetCatalog.TryGetCardArtPath("neutral_geralt_of_rivia", out var geralt));
+            Assert.IsTrue(GwentAssetCatalog.TryGetCardArtPath("neutral_cirilla_fiona_elen_riannon", out var ciri));
+            Assert.IsTrue(GwentAssetCatalog.TryGetCardArtPath("neutral_yennefer_of_vengerberg", out var yennefer));
+            Assert.IsFalse(GwentAssetCatalog.TryGetCardArtPath("missing_card", out var missing));
+
+            Assert.AreEqual("Assets/Assets/1016.jpg", geralt);
+            Assert.AreEqual("Assets/Assets/1019.jpg", ciri);
+            Assert.AreEqual("Assets/Assets/1683.jpg", yennefer);
+            Assert.IsNull(missing);
+        }
+
+        [Test]
         public void LeaderDefinitionsApplyCoreEffects()
         {
             var clearWeatherMatch = TestMatch();
