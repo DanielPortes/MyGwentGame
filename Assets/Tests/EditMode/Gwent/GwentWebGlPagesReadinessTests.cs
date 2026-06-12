@@ -37,7 +37,7 @@ namespace Gwent.Tests
         }
 
         [Test]
-        public void GitHubPagesWorkflowBuildsAndDeploysWebGlArtifact()
+        public void GitHubPagesWorkflowDeploysCommittedWebGlArtifact()
         {
             var workflowPath = Path.Combine(Directory.GetCurrentDirectory(), ".github", "workflows", "webgl-pages.yml");
 
@@ -45,13 +45,11 @@ namespace Gwent.Tests
 
             var workflow = File.ReadAllText(workflowPath);
 
-            StringAssert.Contains("game-ci/unity-test-runner@v4", workflow);
-            StringAssert.Contains("game-ci/unity-builder@v4", workflow);
-            StringAssert.Contains("targetPlatform: WebGL", workflow);
-            StringAssert.Contains("Gwent.Editor.GwentWebGlPagesBuilder.Build", workflow);
             StringAssert.Contains("actions/configure-pages@v5", workflow);
             StringAssert.Contains("actions/upload-pages-artifact@v4", workflow);
             StringAssert.Contains("actions/deploy-pages@v4", workflow);
+            StringAssert.Contains("path: docs/webgl", workflow);
+            StringAssert.DoesNotContain("UNITY_LICENSE", workflow);
         }
 
         [Test]
@@ -65,6 +63,19 @@ namespace Gwent.Tests
 
             StringAssert.Contains("Witcher 3 Gwent Runtime", scene);
             StringAssert.Contains("guid: bc2f372cbe1e1994a92653198a5d9abf", scene);
+        }
+
+        [Test]
+        public void CommittedWebGlPagesArtifactContainsPlayableBuild()
+        {
+            var pagesPath = Path.Combine(Directory.GetCurrentDirectory(), "docs", "webgl");
+
+            Assert.IsTrue(File.Exists(Path.Combine(pagesPath, "index.html")));
+            Assert.IsTrue(File.Exists(Path.Combine(pagesPath, ".nojekyll")));
+            Assert.IsTrue(Directory.Exists(Path.Combine(pagesPath, "Build")));
+            Assert.IsTrue(Directory.Exists(Path.Combine(pagesPath, "TemplateData")));
+            Assert.IsTrue(File.Exists(Path.Combine(pagesPath, "Build", "WebGL.loader.js")));
+            Assert.IsTrue(File.Exists(Path.Combine(pagesPath, "Build", "WebGL.wasm")));
         }
     }
 }

@@ -22,3 +22,11 @@
 *.jpeg binary
 *.mp4 binary
 *.png binary
+
+docs/webgl/Build/*.data binary
+docs/webgl/Build/*.wasm binary
+docs/webgl/TemplateData/*.ico binary
+docs/webgl/TemplateData/*.png binary
+docs/webgl/*.html text eol=lf
+docs/webgl/Build/*.js binary
+docs/webgl/TemplateData/*.css text eol=lf
